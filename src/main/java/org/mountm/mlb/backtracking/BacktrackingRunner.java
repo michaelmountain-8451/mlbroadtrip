@@ -310,7 +310,7 @@ public class BacktrackingRunner {
 					sb.append("(").append(partial.get(i).getStadium()).append(" ")
 							.append(partial.get(i + 1).getStadium()).append(") ");
 				} else if (partial.get(i).dayOfYear() + 2 == partial.get(i + 1).dayOfYear()) {
-					sb.append(partial.get(i).getStadium()).append(" rest ");
+					sb.append(partial.get(i).getStadium()).append(" drive ");
 				} else if (sb.indexOf(partial.get(i).getStadium().toString()) == -1) {
 					sb.append(partial.get(i).getStadium().toString()).append(" ");
 				}
