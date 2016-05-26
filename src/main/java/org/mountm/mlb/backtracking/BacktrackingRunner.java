@@ -25,14 +25,13 @@ import static java.lang.Integer.*;
 public class BacktrackingRunner {
 
 	private static int MAX_NUM_DAYS = 30;
-	private static int MAX_PARITY_LENGTH;
 	private static List<Game> games = new ArrayList<>(2430);
 	private static TShortObjectMap<TIntSet> noExtensions;
 	private static TShortObjectMap<Set<Game>> missedStadiums = new TShortObjectHashMap<>(30);
 	private static int maxSize = 0;
 	private static List<Game> bestSolution = new ArrayList<>(30);
 	private static boolean foundSolution = false;
-	
+
 	private static final int NINE_AM = 32400000;
 	private static final int TEN_PM = 79200000;
 	private static final EnumSet<Stadium> WEST_COAST_STADIUMS = EnumSet.of(Stadium.LAA, Stadium.OAK,
@@ -67,12 +66,11 @@ public class BacktrackingRunner {
 			}
 		}
 		MAX_NUM_DAYS = parseInt(args[0]);
-		MAX_PARITY_LENGTH = parseInt(args[1]);
 		noExtensions = new TShortObjectHashMap<>(15 * MAX_NUM_DAYS);
 
 		List<Game> partial = new ArrayList<>(30);
 
-		for (int i = 2; i < args.length; i++) {
+		for (int i = 1; i < args.length; i++) {
 			partial.add(games.get(parseInt(args[i])));
 		}
 
@@ -161,7 +159,7 @@ public class BacktrackingRunner {
 			}
 			candidate = games.get(index++);
 		}
-		if (!foundSolution && partial.size() < MAX_PARITY_LENGTH) {
+		if (!foundSolution) {
 			addToParity(partial);
 		}
 		return null;
@@ -228,12 +226,9 @@ public class BacktrackingRunner {
 		}
 
 		// Finally, check to see if an equivalent path was already discarded
-		if (partial.size() < MAX_PARITY_LENGTH) {
-			short key = (short) games.indexOf(last);
-			return noExtensions.containsKey(key)
-					&& noExtensions.get(key).contains(calculateValue(partial));
-		}
-		return false;
+		short key = (short) games.indexOf(last);
+		return noExtensions.containsKey(key)
+				&& noExtensions.get(key).contains(calculateValue(partial));
 	}
 
 	// The value of a partial is an int representing which stadiums have been
