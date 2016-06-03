@@ -69,7 +69,7 @@ public class Game implements Comparable<Game> {
 	 */
 	public boolean canReach(Game g) {
 		// This is a loose interpretation of canReach, where the argument must
-		// be after the game which calls the function (but not more than 2
+		// be after the game which calls the function (but not more than 3
 		// calendars days after).
 		if (startTime.isAfter(g.startTime.minusHours(4))
 				|| (g.startTime.getDayOfYear() - startTime.getDayOfYear()) > 2) {
@@ -99,17 +99,6 @@ public class Game implements Comparable<Game> {
 						g.startTime.withMillisOfDay(NINE_AM).plusHours(
 								stadium.getTimeZone()), g.startTime)
 						.getMinutes()) > travelTime;
-		// Example 1: Game 1 starts Tuesday night at 7 PM. Game 2 starts
-		// Thursday night at 7 PM, 16 hours away. The required travel time is 32
-		// hours - the function returns true.
-		//
-		// Example 2: Game 1 starts Wednesday afternoon at 2 PM. Game 2 starts
-		// Thursday night at 7 PM, 16 hours away. The required travel time is
-		// not 24, but 26.67 hours - the function returns false.
-		//
-		// Example 3: Game 1 starts Wednesday afternoon at 1 PM. Game 2 starts
-		// Wednesday night at 7 PM, 2 hours away. The required travel time is 2
-		// hours - the function returns true.
 	}
 
 	@Override

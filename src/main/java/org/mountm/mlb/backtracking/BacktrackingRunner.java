@@ -9,6 +9,7 @@ import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.EnumSet;
 import java.util.HashSet;
 import java.util.List;
@@ -17,23 +18,21 @@ import java.util.Timer;
 import java.util.TimerTask;
 
 import org.joda.time.DateTime;
-import org.joda.time.Minutes;
 import org.joda.time.format.DateTimeFormat;
 
 import static java.lang.Integer.*;
 
 public class BacktrackingRunner {
 
-	private static int MAX_NUM_DAYS = 30;
+	private static int maxNumDays = 30;
+	private static int[] maxDaysPerGame;
 	private static List<Game> games = new ArrayList<>(2430);
-	private static TShortObjectMap<TIntSet> noExtensions;
+	private static TShortObjectMap<TIntSet> noExtensions = new TShortObjectHashMap<>(510);
 	private static TShortObjectMap<Set<Game>> missedStadiums = new TShortObjectHashMap<>(30);
 	private static int maxSize = 0;
 	private static List<Game> bestSolution = new ArrayList<>(30);
 	private static boolean foundSolution = false;
 
-	private static final int NINE_AM = 32400000;
-	private static final int TEN_PM = 79200000;
 	private static final EnumSet<Stadium> WEST_COAST_STADIUMS = EnumSet.of(Stadium.LAA, Stadium.OAK,
 			Stadium.SEA, Stadium.ARI, Stadium.LAD, Stadium.SDP, Stadium.SFG);
 
@@ -65,8 +64,19 @@ public class BacktrackingRunner {
 				ex.printStackTrace();
 			}
 		}
-		MAX_NUM_DAYS = parseInt(args[0]);
-		noExtensions = new TShortObjectHashMap<>(15 * MAX_NUM_DAYS);
+		maxNumDays = parseInt(args[0]);
+		maxDaysPerGame = new int[maxNumDays+1];
+		maxDaysPerGame[0] = 1;
+		maxDaysPerGame[maxNumDays] = 29;
+		for (int i = 1; i < (maxNumDays - 27); i++) {
+			maxDaysPerGame[(2 * i) - 1] = i;
+			maxDaysPerGame[2 * i] = i;
+		}
+		for (int i = (2* maxNumDays - 55); i < maxNumDays; i++) {
+			maxDaysPerGame[i] = maxDaysPerGame[i-1] + 1;
+		}
+		
+		System.out.println(Arrays.toString(maxDaysPerGame));
 
 		List<Game> partial = new ArrayList<>(30);
 
@@ -152,7 +162,7 @@ public class BacktrackingRunner {
 		}
 		Game last = partial.get(partial.size() - 1);
 		Game candidate = games.get(index++);
-		while (last.dayOfYear() + 2 >= candidate.dayOfYear()) {
+		while (last.dayOfYear() + 3 >= candidate.dayOfYear()) {
 			if (!haveVisitedStadium(partial, candidate.getStadium()) && last.canReach(candidate)) {
 				partial.add(candidate);
 				return partial;
@@ -192,7 +202,7 @@ public class BacktrackingRunner {
 	}
 
 	private static boolean badSolution(List<Game> partial) {
-		if (travelDays(partial) > MAX_NUM_DAYS
+		if (travelDays(partial) > maxNumDays || partial.size() < maxDaysPerGame[travelDays(partial)]
 				|| foundSolution && tripLength(partial) > tripLength(bestSolution)) {
 			return true;
 		}
@@ -253,13 +263,13 @@ public class BacktrackingRunner {
 		noExtensions.clear();
 		Game[] lastGameHere = new Game[30];
 		Game g = games.get(index++);
-		int lastDay = g.dayOfYear() + MAX_NUM_DAYS;
+		int lastDay = g.dayOfYear() + maxNumDays;
 		int firstDay = g.dayOfYear();
 		while (g.dayOfYear() < lastDay && index < games.size()) {
 			lastGameHere[g.stadiumIndex()] = g;
 			g = games.get(index++);
 		}
-		for (int i = 0; i < MAX_NUM_DAYS; i++) {
+		for (int i = 0; i < maxNumDays; i++) {
 			Set<Game> mapEntry = new HashSet<Game>(30);
 			for (int j = 0; j < 30; j++) {
 				if (lastGameHere[j].dayOfYear() - firstDay <= i) {
@@ -368,33 +378,7 @@ public class BacktrackingRunner {
 	}
 
 	private static int travelDays(List<Game> partial) {
-		if (partial.size() < 2) {
-			return 1;
-		}
-		int offset = 1;
-		Game firstGame = partial.get(0);
-		Game lastGame = partial.get(partial.size() - 1);
-		int travelToStart = Stadium.BAL.getMinutesTo(firstGame.getStadium());
-		int travelFromEnd = lastGame.getStadium().getMinutesTo(Stadium.BAL);
-		int firstTimeAvailable = Minutes
-				.minutesBetween(firstGame.getStartTime().withMillisOfDay(NINE_AM),
-						firstGame.getStartTime())
-				.getMinutes();
-
-		while (firstTimeAvailable < travelToStart) {
-			offset++;
-			travelToStart -= 720;
-		}
-		if (!lastGame.getStadium().equals(Stadium.BAL) && !lastGame.getStadium().equals(Stadium.WAS)
-				&& !lastGame.getStadium().equals(Stadium.PHI)) {
-			int lastTimeAvailable = Minutes.minutesBetween(lastGame.getStartTime().plusHours(4),
-					lastGame.getStartTime().withMillisOfDay(TEN_PM)).getMinutes();
-			while (lastTimeAvailable < travelFromEnd) {
-				offset++;
-				travelFromEnd -= 720;
-			}
-		}
-
-		return partial.get(partial.size() - 1).dayOfYear() - partial.get(0).dayOfYear() + offset;
+		return partial.isEmpty() ? 1
+				: 1 + partial.get(partial.size() - 1).dayOfYear() - partial.get(0).dayOfYear();
 	}
 }
