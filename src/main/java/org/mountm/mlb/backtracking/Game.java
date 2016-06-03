@@ -68,37 +68,41 @@ public class Game implements Comparable<Game> {
 	 *         game; <code>false</code> otherwise
 	 */
 	public boolean canReach(Game g) {
-		// This is a loose interpretation of canReach, where the argument must
-		// be after the game which calls the function (but not more than 3
-		// calendars days after).
-		if (startTime.isAfter(g.startTime.minusHours(4))
-				|| (g.startTime.getDayOfYear() - startTime.getDayOfYear()) > 2) {
+		if (startTime.isAfter(g.startTime.minusHours(4))) {
 			return false;
 		}
-		// It is assumed that each game lasts 4 hours
-		int timeAvailable = Minutes.minutesBetween(startTime, g.startTime)
-				.getMinutes() - 240;
-		int travelTime = stadium.getMinutesTo(g.stadium);
-		int daysBetween = g.startTime.getDayOfYear() - startTime.getDayOfYear();
-		if (daysBetween == 0) {
-			return timeAvailable > travelTime;
+		int dayDiff = g.startTime.getDayOfYear() - startTime.getDayOfYear();
+		int drivingTime = stadium.getMinutesTo(g.stadium);
+		if (dayDiff == 0) {
+			return Minutes.minutesBetween(startTime.plusMinutes(TIME_OF_GAME),
+					g.startTime).getMinutes() > drivingTime;
 		}
+		boolean useDestinationTimeZone = (dayDiff > 1);
 		int drivingAfterGame = Minutes.minutesBetween(
 				startTime.plusMinutes(TIME_OF_GAME),
 				startTime.withMillisOfDay(TEN_PM).plusHours(
 						stadium.getTimeZone())).getMinutes();
-		travelTime = Math.min(travelTime, travelTime - drivingAfterGame);
-		boolean useDestinationTimeZone = ((daysBetween > 1) || drivingAfterGame > 0);
-		if (daysBetween == 2) {
-			travelTime -= MAX_DRIVING;
+		if (drivingAfterGame > 0) {
+			useDestinationTimeZone = true;
+			drivingTime -= drivingAfterGame;
 		}
-		return (useDestinationTimeZone ? Minutes.minutesBetween(
-				g.startTime.withMillisOfDay(NINE_AM).plusHours(
-						g.stadium.getTimeZone()), g.startTime).getMinutes()
-				: Minutes.minutesBetween(
+		while (dayDiff > 1 && drivingTime > 0) {
+			drivingTime -= MAX_DRIVING;
+			dayDiff--;
+		}
+		if (dayDiff == 1) {
+			if (useDestinationTimeZone) {
+				return Minutes.minutesBetween(
 						g.startTime.withMillisOfDay(NINE_AM).plusHours(
-								stadium.getTimeZone()), g.startTime)
-						.getMinutes()) > travelTime;
+								g.stadium.getTimeZone()),
+						g.startTime).getMinutes() > drivingTime;
+			}
+			return Minutes.minutesBetween(
+					g.startTime.withMillisOfDay(NINE_AM).plusHours(
+							stadium.getTimeZone()), g.startTime)
+					.getMinutes() > drivingTime;
+		}
+		return true;
 	}
 
 	@Override
