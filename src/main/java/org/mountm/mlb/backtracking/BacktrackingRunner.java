@@ -18,6 +18,7 @@ import java.util.Timer;
 import java.util.TimerTask;
 
 import org.joda.time.DateTime;
+import org.joda.time.Minutes;
 import org.joda.time.format.DateTimeFormat;
 
 import static java.lang.Integer.*;
@@ -35,6 +36,8 @@ public class BacktrackingRunner {
 
 	private static final EnumSet<Stadium> WEST_COAST_STADIUMS = EnumSet.of(Stadium.LAA, Stadium.OAK,
 			Stadium.SEA, Stadium.ARI, Stadium.LAD, Stadium.SDP, Stadium.SFG);
+	private static final int NINE_AM = 32400000;
+	private static final int TEN_PM = 79200000;
 
 	public static void main(String[] args) {
 		BufferedReader br = null;
@@ -65,17 +68,17 @@ public class BacktrackingRunner {
 			}
 		}
 		maxNumDays = parseInt(args[0]);
-		maxDaysPerGame = new int[maxNumDays+1];
-		maxDaysPerGame[0] = 1;
+		maxDaysPerGame = new int[maxNumDays + 1];
+		maxDaysPerGame[0] = 0;
 		maxDaysPerGame[maxNumDays] = 29;
 		for (int i = 1; i < (maxNumDays - 27); i++) {
 			maxDaysPerGame[(2 * i) - 1] = i;
 			maxDaysPerGame[2 * i] = i;
 		}
-		for (int i = (2* maxNumDays - 55); i < maxNumDays; i++) {
-			maxDaysPerGame[i] = maxDaysPerGame[i-1] + 1;
+		for (int i = (2 * maxNumDays - 55); i < maxNumDays; i++) {
+			maxDaysPerGame[i] = maxDaysPerGame[i - 1] + 1;
 		}
-		
+
 		System.out.println(Arrays.toString(maxDaysPerGame));
 
 		List<Game> partial = new ArrayList<>(30);
@@ -309,18 +312,19 @@ public class BacktrackingRunner {
 		while (sb.length() < 6) {
 			sb.append(" ");
 		}
-		for (int i = 0; i < partial.size(); i++) {
-			if (i < partial.size() - 1) {
-				if (partial.get(i).dayOfYear() == partial.get(i + 1).dayOfYear()) {
-					sb.append("(").append(partial.get(i).getStadium()).append(" ")
-							.append(partial.get(i + 1).getStadium()).append(") ");
-				} else if (partial.get(i).dayOfYear() + 2 == partial.get(i + 1).dayOfYear()) {
-					sb.append(partial.get(i).getStadium()).append(" drive ");
-				} else if (sb.indexOf(partial.get(i).getStadium().toString()) == -1) {
-					sb.append(partial.get(i).getStadium().toString()).append(" ");
-				}
-			} else if (sb.indexOf((partial.get(i).getStadium().toString())) == -1) {
-				sb.append(partial.get(i).getStadium().toString()).append(" ");
+		int startDay = partial.get(0).dayOfYear();
+		int endDay = partial.get(partial.size() - 1).dayOfYear();
+		int currentIndex = 0;
+		for (int i = startDay; i <= endDay; i++) {
+			if (currentIndex + 1 < partial.size()
+					&& partial.get(currentIndex + 1).dayOfYear() == i) {
+				sb.append("(").append(partial.get(currentIndex++).getStadium().toString())
+						.append(" ").append(partial.get(currentIndex++).getStadium().toString())
+						.append(") ");
+			} else if (partial.get(currentIndex).dayOfYear() == i) {
+				sb.append(partial.get(currentIndex++).getStadium().toString()).append(" ");
+			} else {
+				sb.append("drive ");
 			}
 		}
 		sb.append(partial.size()).append(" in ").append(travelDays(partial));
@@ -378,7 +382,38 @@ public class BacktrackingRunner {
 	}
 
 	private static int travelDays(List<Game> partial) {
-		return partial.isEmpty() ? 1
-				: 1 + partial.get(partial.size() - 1).dayOfYear() - partial.get(0).dayOfYear();
+		int partialSize = partial.size();
+		if (partialSize == 0) {
+			return 0;
+		}
+		int offset = 1;
+		Game firstGame = partial.get(0);
+		int travelToStart = Stadium.BAL.getMinutesTo(firstGame.getStadium());
+		int firstTimeAvailable = Minutes
+				.minutesBetween(firstGame.getStartTime().withMillisOfDay(NINE_AM),
+						firstGame.getStartTime())
+				.getMinutes();
+		while (firstTimeAvailable < travelToStart) {
+			offset++;
+			travelToStart -= 720;
+		}
+		if (partial.size() == 1) {
+			return offset;
+		}
+		if (partialSize == 30) {
+			Game lastGame = partial.get(partial.size() - 1);
+			int travelFromEnd = lastGame.getStadium().getMinutesTo(Stadium.BAL);
+			if (!lastGame.getStadium().equals(Stadium.BAL)
+					&& !lastGame.getStadium().equals(Stadium.WAS)
+					&& !lastGame.getStadium().equals(Stadium.PHI)) {
+				int lastTimeAvailable = Minutes.minutesBetween(lastGame.getStartTime().plusHours(4),
+						lastGame.getStartTime().withMillisOfDay(TEN_PM)).getMinutes();
+				while (lastTimeAvailable < travelFromEnd) {
+					offset++;
+					travelFromEnd -= 720;
+				}
+			}
+		}
+		return partial.get(partial.size() - 1).dayOfYear() - partial.get(0).dayOfYear() + offset;
 	}
 }
