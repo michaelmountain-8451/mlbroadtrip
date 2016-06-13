@@ -76,29 +76,24 @@ public class Game implements Comparable<Game> {
 			return false;
 		}
 		// It is assumed that each game lasts 4 hours
-		int timeAvailable = Minutes.minutesBetween(startTime, g.startTime)
-				.getMinutes() - 240;
+		int timeAvailable = Minutes.minutesBetween(startTime, g.startTime).getMinutes() - 240;
 		int travelTime = stadium.getMinutesTo(g.stadium);
 		int daysBetween = g.startTime.getDayOfYear() - startTime.getDayOfYear();
 		if (daysBetween == 0) {
 			return timeAvailable > travelTime;
 		}
-		int drivingAfterGame = Minutes.minutesBetween(
-				startTime.plusMinutes(TIME_OF_GAME),
-				startTime.withMillisOfDay(TEN_PM).plusHours(
-						stadium.getTimeZone())).getMinutes();
+		int drivingAfterGame = Minutes.minutesBetween(startTime.plusMinutes(TIME_OF_GAME),
+				startTime.withMillisOfDay(TEN_PM).plusHours(stadium.getTimeZone())).getMinutes();
 		travelTime = Math.min(travelTime, travelTime - drivingAfterGame);
 		boolean useDestinationTimeZone = ((daysBetween > 1) || drivingAfterGame > 0);
 		if (daysBetween == 2) {
 			travelTime -= MAX_DRIVING;
 		}
-		return (useDestinationTimeZone ? Minutes.minutesBetween(
-				g.startTime.withMillisOfDay(NINE_AM).plusHours(
-						g.stadium.getTimeZone()), g.startTime).getMinutes()
-				: Minutes.minutesBetween(
-						g.startTime.withMillisOfDay(NINE_AM).plusHours(
-								stadium.getTimeZone()), g.startTime)
-						.getMinutes()) > travelTime;
+		return (useDestinationTimeZone
+				? Minutes.minutesBetween(g.startTime.withMillisOfDay(NINE_AM).plusHours(g.stadium.getTimeZone()),
+						g.startTime).getMinutes()
+				: Minutes.minutesBetween(g.startTime.withMillisOfDay(NINE_AM).plusHours(stadium.getTimeZone()),
+						g.startTime).getMinutes()) > travelTime;
 		// Example 1: Game 1 starts Tuesday night at 7 PM. Game 2 starts
 		// Thursday night at 7 PM, 16 hours away. The required travel time is 32
 		// hours - the function returns true.
@@ -125,10 +120,8 @@ public class Game implements Comparable<Game> {
 	 *         greater than 0 if this game starts after the specified game.
 	 */
 	public int compareTo(Game g) {
-		int startTimeDiff = Long.compare(startTime.getMillis(),
-				g.startTime.getMillis());
-		return startTimeDiff == 0 ? stadium.compareTo(g.stadium)
-				: startTimeDiff;
+		int startTimeDiff = Long.compare(startTime.getMillis(), g.startTime.getMillis());
+		return startTimeDiff == 0 ? stadium.compareTo(g.stadium) : startTimeDiff;
 	}
 
 	@Override
@@ -136,8 +129,7 @@ public class Game implements Comparable<Game> {
 		final int prime = 31;
 		int result = 1;
 		result = prime * result + ((stadium == null) ? 0 : stadium.hashCode());
-		result = prime * result
-				+ ((startTime == null) ? 0 : startTime.hashCode());
+		result = prime * result + ((startTime == null) ? 0 : startTime.hashCode());
 		return result;
 	}
 

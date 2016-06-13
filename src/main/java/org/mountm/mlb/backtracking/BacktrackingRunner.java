@@ -25,18 +25,17 @@ import static java.lang.Integer.*;
 public class BacktrackingRunner {
 
 	private static int MAX_NUM_DAYS = 30;
-	private static int MAX_PARITY_LENGTH;
 	private static List<Game> games = new ArrayList<>(2430);
 	private static TShortObjectMap<TIntSet> noExtensions;
 	private static TShortObjectMap<Set<Game>> missedStadiums = new TShortObjectHashMap<>(30);
 	private static int maxSize = 0;
 	private static List<Game> bestSolution = new ArrayList<>(30);
 	private static boolean foundSolution = false;
-	
+
 	private static final int NINE_AM = 32400000;
 	private static final int TEN_PM = 79200000;
-	private static final EnumSet<Stadium> WEST_COAST_STADIUMS = EnumSet.of(Stadium.LAA, Stadium.OAK,
-			Stadium.SEA, Stadium.ARI, Stadium.LAD, Stadium.SDP, Stadium.SFG);
+	private static final EnumSet<Stadium> WEST_COAST_STADIUMS = EnumSet.of(Stadium.LAA, Stadium.OAK, Stadium.SEA,
+			Stadium.ARI, Stadium.LAD, Stadium.SDP, Stadium.SFG);
 
 	public static void main(String[] args) {
 		BufferedReader br = null;
@@ -50,8 +49,7 @@ public class BacktrackingRunner {
 
 			while ((currentLine = br.readLine()) != null) {
 				gameData = currentLine.split(",");
-				DateTime startTime = DateTimeFormat.forPattern("MM/dd/yyyy kk:mm")
-						.parseDateTime(gameData[0]);
+				DateTime startTime = DateTimeFormat.forPattern("MM/dd/yyyy kk:mm").parseDateTime(gameData[0]);
 				Stadium stadium = Stadium.valueOf(gameData[1]);
 				games.add(new Game(stadium, startTime));
 
@@ -67,12 +65,11 @@ public class BacktrackingRunner {
 			}
 		}
 		MAX_NUM_DAYS = parseInt(args[0]);
-		MAX_PARITY_LENGTH = parseInt(args[1]);
 		noExtensions = new TShortObjectHashMap<>(15 * MAX_NUM_DAYS);
 
 		List<Game> partial = new ArrayList<>(30);
 
-		for (int i = 2; i < args.length; i++) {
+		for (int i = 1; i < args.length; i++) {
 			partial.add(games.get(parseInt(args[i])));
 		}
 
@@ -161,7 +158,7 @@ public class BacktrackingRunner {
 			}
 			candidate = games.get(index++);
 		}
-		if (!foundSolution && partial.size() < MAX_PARITY_LENGTH) {
+		if (!foundSolution) {
 			addToParity(partial);
 		}
 		return null;
@@ -194,8 +191,7 @@ public class BacktrackingRunner {
 	}
 
 	private static boolean badSolution(List<Game> partial) {
-		if (travelDays(partial) > MAX_NUM_DAYS
-				|| foundSolution && tripLength(partial) > tripLength(bestSolution)) {
+		if (travelDays(partial) > MAX_NUM_DAYS || foundSolution && tripLength(partial) > tripLength(bestSolution)) {
 			return true;
 		}
 
@@ -228,12 +224,8 @@ public class BacktrackingRunner {
 		}
 
 		// Finally, check to see if an equivalent path was already discarded
-		if (partial.size() < MAX_PARITY_LENGTH) {
-			short key = (short) games.indexOf(last);
-			return noExtensions.containsKey(key)
-					&& noExtensions.get(key).contains(calculateValue(partial));
-		}
-		return false;
+		short key = (short) games.indexOf(last);
+		return noExtensions.containsKey(key) && noExtensions.get(key).contains(calculateValue(partial));
 	}
 
 	// The value of a partial is an int representing which stadiums have been
@@ -292,8 +284,7 @@ public class BacktrackingRunner {
 			if (newTripLength < bestTripLength) {
 				bestSolution.clear();
 				bestSolution.addAll(partial);
-				System.out.println(
-						"Best solution is " + newTripLength + ", prev was " + bestTripLength);
+				System.out.println("Best solution is " + newTripLength + ", prev was " + bestTripLength);
 			}
 		}
 
@@ -382,8 +373,7 @@ public class BacktrackingRunner {
 		int travelToStart = Stadium.BAL.getMinutesTo(firstGame.getStadium());
 		int travelFromEnd = lastGame.getStadium().getMinutesTo(Stadium.BAL);
 		int firstTimeAvailable = Minutes
-				.minutesBetween(firstGame.getStartTime().withMillisOfDay(NINE_AM),
-						firstGame.getStartTime())
+				.minutesBetween(firstGame.getStartTime().withMillisOfDay(NINE_AM), firstGame.getStartTime())
 				.getMinutes();
 
 		while (firstTimeAvailable < travelToStart) {
