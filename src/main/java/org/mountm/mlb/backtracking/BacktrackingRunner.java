@@ -1,17 +1,18 @@
 package org.mountm.mlb.backtracking;
 
-import gnu.trove.iterator.TIntIterator;
 import gnu.trove.map.TShortObjectMap;
 import gnu.trove.map.hash.TShortObjectHashMap;
 import gnu.trove.set.TIntSet;
 import gnu.trove.set.hash.TIntHashSet;
 
 import java.io.BufferedReader;
-import java.io.BufferedWriter;
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.FileReader;
-import java.io.FileWriter;
 import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.HashSet;
@@ -36,13 +37,12 @@ public class BacktrackingRunner {
 	private static int maxSize = 0;
 	private static List<Game> bestSolution = new ArrayList<>(30);
 	private static boolean foundSolution = false;
-	private static int initialValue;
 
 	private static final EnumSet<Stadium> WEST_COAST_STADIUMS = EnumSet.of(Stadium.LAA, Stadium.OAK, Stadium.SEA,
 			Stadium.ARI, Stadium.LAD, Stadium.SDP, Stadium.SFG);
 	private static final int NINE_AM = 32400000;
 	private static final int TEN_PM = 79200000;
-	private static final String NO_EXTENSIONS_FILE_NAME = "noExtensions.txt";
+	private static final String NO_EXTENSIONS_FILE_NAME = "noExtensions.dat";
 
 	public static void main(String[] args) {
 
@@ -57,8 +57,6 @@ public class BacktrackingRunner {
 
 		if (verifyInitialData(partial)) {
 
-			initialValue = calculateValue(partial);
-
 			// initialize the missedStadiums collection
 			if (partial.isEmpty()) {
 				recalculateFailureCriteria(0);
@@ -66,7 +64,11 @@ public class BacktrackingRunner {
 				recalculateFailureCriteria(games.indexOf(partial.get(partial.size() - 1)));
 			}
 
-			readPruningData(false, partial.get(partial.size() - 1));
+			readPruningData();
+			if (badSolution(partial)) {
+				System.out.println("Infeasible starting point.");
+				return;
+			}
 
 			// decrement maxSize once per minute to increase output
 			Timer timer = new Timer(true);
@@ -139,43 +141,17 @@ public class BacktrackingRunner {
 		return true;
 	}
 
-	private static void readPruningData(boolean saveAll, Game g) {
-		BufferedReader br = null;
+	@SuppressWarnings("unchecked")
+	private static void readPruningData() {
 		try {
-			String currentLine;
-			String[] gameData;
-			short key;
-			TIntSet entry;
-			br = new BufferedReader(new FileReader(NO_EXTENSIONS_FILE_NAME));
-			int currentEndPoint = (g == null) ? -1 : games.indexOf(g);
-			while ((currentLine = br.readLine()) != null) {
-				gameData = currentLine.split(" ");
-				key = Short.parseShort(gameData[0]);
-				if (key > currentEndPoint) {
-					entry = new TIntHashSet();
-					for (int i = 1; i < gameData.length; i++) {
-						int value = Integer.parseInt(gameData[i]);
-						if (saveAll || ((value & initialValue) == initialValue)) {
-							entry.add(value);
-						}
-					}
-					if (!entry.isEmpty()) {
-						if (noExtensions.containsKey(key)) {
-							entry.addAll(noExtensions.get(key));
-						}
-						noExtensions.put(key, entry);
-					}
-				}
-			}
+			FileInputStream fis = new FileInputStream(NO_EXTENSIONS_FILE_NAME);
+			ObjectInputStream ois = new ObjectInputStream(fis);
+			noExtensions = (TShortObjectMap<TIntSet>) ois.readObject();
+			ois.close();
 		} catch (IOException e) {
 			e.printStackTrace();
-		} finally {
-			try {
-				if (br != null)
-					br.close();
-			} catch (IOException ex) {
-				ex.printStackTrace();
-			}
+		} catch (ClassNotFoundException e) {
+			e.printStackTrace();
 		}
 	}
 
@@ -476,29 +452,18 @@ public class BacktrackingRunner {
 	}
 
 	private static void writePruningData() {
-		try {
-			File file = new File(NO_EXTENSIONS_FILE_NAME);
-			if (file.exists()) {
-				readPruningData(true, null);
-				file.delete();
-			}
-			file.createNewFile();
-			BufferedWriter bw = new BufferedWriter(new FileWriter(file.getAbsoluteFile()));
-			StringBuilder sb;
-			for (short key : noExtensions.keys()) {
-				bw.write(key + " ");
-				sb = new StringBuilder();
-				TIntIterator iter = noExtensions.get(key).iterator();
-				while (iter.hasNext()) {
-					sb.append(iter.next() + " ");
+			try {
+				File file = new File(NO_EXTENSIONS_FILE_NAME);
+				if (file.exists()) {
+					file.delete();
 				}
-				bw.write(sb.toString());
-				bw.newLine();
+				FileOutputStream fos = new FileOutputStream(NO_EXTENSIONS_FILE_NAME);
+				ObjectOutputStream oos = new ObjectOutputStream(fos);
+				oos.writeObject(noExtensions);
+				oos.close();
+			} catch (IOException e) {
+				e.printStackTrace();
 			}
-			bw.close();
-
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
+			
 	}
 }
