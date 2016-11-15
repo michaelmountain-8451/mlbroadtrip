@@ -301,7 +301,7 @@ public class BacktrackingRunner {
 		}
 		Game last = partial.get(partial.size() - 1);
 		Game candidate = games.get(index++);
-		while (last.dayOfYear() + 3 >= candidate.dayOfYear()) {
+		while (last.dayOfYear() + 3 >= candidate.dayOfYear() && index < games.size()) {
 			if (!haveVisitedStadium(partial, candidate.getStadium()) && last.canReach(candidate)) {
 				partial.add(candidate);
 				return partial;
