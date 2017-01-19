@@ -9,6 +9,8 @@ import gnu.trove.set.hash.TIntHashSet;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
@@ -42,7 +44,7 @@ public class BacktrackingRunner {
 			Stadium.ARI, Stadium.LAD, Stadium.SDP, Stadium.SFG);
 	private static final int NINE_AM = 32400000;
 	private static final int TEN_PM = 79200000;
-	private static final String NO_EXTENSIONS_FILE_NAME = "noExtensions.txt";
+	private static final String NO_EXTENSIONS_FILE_NAME = "noExtensions.dat";
 
 	public static void main(String[] args) {
 
@@ -177,6 +179,18 @@ public class BacktrackingRunner {
 				ex.printStackTrace();
 			}
 		}
+	}
+	
+	private static void readBinaryPruningData(boolean b, Game game) {
+		// TODO Auto-generated method stub
+		try (FileInputStream inputStream = new FileInputStream(NO_EXTENSIONS_FILE_NAME)){
+			
+		} catch (FileNotFoundException e) {
+			e.printStackTrace();
+		} catch(IOException e) {
+			e.printStackTrace();
+		}
+		
 	}
 
 	// missedStadiums stores information about the latest point in time at which

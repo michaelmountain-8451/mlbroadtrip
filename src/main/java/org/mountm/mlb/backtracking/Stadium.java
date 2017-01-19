@@ -20,8 +20,7 @@ public enum Stadium {
 	private final int timeZone;
 
 	// A 2D array storing the driving times (in minutes) between each pair of
-	// stadiums. This should be a symmetric matrix (if it's not, I messed
-	// something up).
+	// stadiums. This is an asymmetric matrix.
 	private static final int[][] minutesBetween = {
 		//  0,   1,   2,   3,   4,   5,   6,   7,   8,   9,  10,  11,  12,  13,  14,  15,  16,  17,  18,  19,  20,  21,  22,  23,  24,  25,  26,  27,  28,  29
 		{   0, 365, 181, 822, 447, 661, 379, 529, 910,1035,1208,2220,2340,2340,1170, 589, 912, 193, 135,  43, 679, 452, 757, 249, 715,1980,1410,2220,2220,2400},
