@@ -98,7 +98,8 @@ public class BacktrackingRunner {
 			br = new BufferedReader(new FileReader("Games.csv"));
 			while ((currentLine = br.readLine()) != null) {
 				gameData = currentLine.split(",");
-				DateTime startTime = DateTimeFormat.forPattern("MM/dd/yyyy kk:mm").parseDateTime(gameData[0]);
+				// subtract half hour to account for parking and getting into stadium (this will be corrected when printing solutions)
+				DateTime startTime = DateTimeFormat.forPattern("MM/dd/yyyy kk:mm").parseDateTime(gameData[0]).minusMinutes(30);
 				Stadium stadium = Stadium.valueOf(gameData[1]);
 				games.add(new Game(stadium, startTime));
 			}

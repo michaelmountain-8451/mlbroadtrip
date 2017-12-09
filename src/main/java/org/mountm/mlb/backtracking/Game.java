@@ -101,7 +101,7 @@ public class Game implements Comparable<Game> {
 
 	@Override
 	public String toString() {
-		return stadium + " " + startTime.toString("M/dd hh:mm aa");
+		return stadium + " " + startTime.plusMinutes(30).toString("M/dd hh:mm aa");
 	}
 
 	/**
