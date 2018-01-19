@@ -77,6 +77,9 @@ public class BacktrackingRunner {
 			backtrack(partial);
 			if (!foundSolution) {
 				writePruningData();
+			} else {
+				printSolution(bestSolution);
+				System.out.println(tripLength(bestSolution));
 			}
 			System.out.println(partial);
 		}
