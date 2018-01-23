@@ -29,6 +29,7 @@ import static java.lang.Integer.*;
 public class BacktrackingRunner {
 
 	private static int maxNumDays = 30;
+	private static int bestTripLength = Integer.MAX_VALUE;
 	private static List<Game> games = new ArrayList<>(2430);
 	private static TShortObjectMap<TIntSet> noExtensions = new TShortObjectHashMap<>(510);
 	private static TShortObjectMap<Set<Game>> missedStadiums = new TShortObjectHashMap<>(30);
@@ -43,9 +44,16 @@ public class BacktrackingRunner {
 		readGameInputFile();
 
 		maxNumDays = Integer.parseInt(args[0]);
+		
+		bestTripLength = Integer.parseInt(args[1]);
 
 		List<Game> partial = new ArrayList<>(30);
-		for (int i = 1; i < args.length; i++) {
+		for (int i = 2; i < args.length; i++) {
+			Game g = games.get(parseInt(args[i]));
+			if (haveVisitedStadium(partial, g.getStadium())) {
+				System.out.println("Trying to visit " + g.getStadium() + " twice!");
+				return;
+			}
 			partial.add(games.get(parseInt(args[i])));
 		}
 
@@ -188,7 +196,7 @@ public class BacktrackingRunner {
 
 	private static boolean badSolution(List<Game> partial) {
 		if (travelDays(partial) > maxNumDays
-				|| (foundSolution && tripLength(partial) > tripLength(bestSolution))) {
+				|| (foundSolution && tripLength(partial) > bestTripLength)) {
 			return true;
 		}
 
@@ -224,15 +232,17 @@ public class BacktrackingRunner {
 			foundSolution = true;
 			bestSolution.clear();
 			bestSolution.addAll(partial);
-			System.out.println(tripLength(bestSolution));
+			int tripLength = tripLength(bestSolution);
+			bestTripLength = Math.min(tripLength, bestTripLength);
+			System.out.println(tripLength);
 			writePruningData();
 		} else {
-			int bestTripLength = tripLength(bestSolution);
 			int newTripLength = tripLength(partial);
 			if (newTripLength < bestTripLength) {
 				bestSolution.clear();
 				bestSolution.addAll(partial);
 				System.out.println("Best solution is " + newTripLength + ", prev was " + bestTripLength);
+				bestTripLength = newTripLength;
 			}
 		}
 	}
@@ -352,24 +362,17 @@ public class BacktrackingRunner {
 		EnumSet<Stadium> notVisited = EnumSet.allOf(Stadium.class);
 		Integer tripLength = 0;
 		for (int i = 0; i < partial.size(); i++) {
-			if (i == 0) {
-				tripLength += Stadium.BAL.getMinutesTo(partial.get(0).getStadium());
-			} else {
+			notVisited.remove(partial.get(i).getStadium());
+			if (i > 0) {
 				tripLength += partial.get(i - 1).getMinutesTo(partial.get(i));
 			}
-			notVisited.remove(partial.get(i).getStadium());
 		}
 		int padding = 0;
 		Stadium last = partial.get(partial.size() - 1).getStadium();
-		if (!notVisited.isEmpty()) {
-			for (Stadium s : notVisited) {
-				padding = Math.max(padding, last.getMinutesTo(s) + s.getMinutesTo(Stadium.BAL));
-			}
-		} else {
-			padding = last.getMinutesTo(Stadium.BAL);
+		for (Stadium s : notVisited) {
+			padding = Math.max(padding, last.getMinutesTo(s));
 		}
-		tripLength += padding;
-		return tripLength;
+		return tripLength + padding;
 	}
 
 	private static boolean haveVisitedStadium(List<Game> partial, Stadium stadium) {
