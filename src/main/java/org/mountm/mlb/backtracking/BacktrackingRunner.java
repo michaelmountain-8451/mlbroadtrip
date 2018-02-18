@@ -38,6 +38,7 @@ public class BacktrackingRunner {
 	private static boolean foundSolution = false;
 
 	private static final String NO_EXTENSIONS_FILE_NAME = "noExtensions.dat";
+	private static final int[] MAX_DAYS_PER_GAME = {0,1,2,2,3,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,21,23,25,27,29};
 
 	public static void main(String[] args) {
 
@@ -197,7 +198,7 @@ public class BacktrackingRunner {
 	}
 
 	private static boolean badSolution(List<Game> partial) {
-		if (travelDays(partial) > maxNumDays
+		if (travelDays(partial) > maxNumDays || partial.size() < MAX_DAYS_PER_GAME[travelDays(partial)]
 				|| (foundSolution && tripLength(partial) > bestTripLength)) {
 			return true;
 		}
