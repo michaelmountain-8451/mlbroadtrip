@@ -58,6 +58,8 @@ public class BacktrackingRunner {
 		}
 
 		if (verifyInitialData(partial)) {
+			
+			System.out.println(partial);
 
 			// initialize the missedStadiums collection
 			if (partial.isEmpty()) {
