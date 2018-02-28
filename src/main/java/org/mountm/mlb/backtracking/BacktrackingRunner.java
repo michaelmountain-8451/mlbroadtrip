@@ -30,7 +30,7 @@ import static java.lang.Integer.*;
 public class BacktrackingRunner {
 
 	private static int maxNumDays = 30;
-	private static int[] maxDaysPerGame;
+	private static int bestTripLength = Integer.MAX_VALUE;
 	private static List<Game> games = new ArrayList<>(2430);
 	private static TShortObjectMap<TIntSet> noExtensions = new TShortObjectHashMap<>(510);
 	private static TShortObjectMap<Set<Game>> missedStadiums = new TShortObjectHashMap<>(30);
@@ -43,25 +43,36 @@ public class BacktrackingRunner {
 	private static final int NINE_AM = 32400000;
 	private static final int TEN_PM = 79200000;
 	private static final String NO_EXTENSIONS_FILE_NAME = "noExtensions.dat";
+	private static Set<EnumSet<Stadium>> possibleDHs = new HashSet<>(8);
+	
 
 	public static void main(String[] args) {
 
 		readGameInputFile();
 
-		initializeConstraints(Integer.parseInt(args[0]));
+		maxNumDays = Integer.parseInt(args[0]);
+		
+		bestTripLength = Integer.parseInt(args[1]);
 
 		List<Game> partial = new ArrayList<>(30);
-		for (int i = 1; i < args.length; i++) {
-			partial.add(games.get(parseInt(args[i])));
+		for (int i = 2; i < args.length; i++) {
+			Game g = games.get(parseInt(args[i]));
+			if (haveVisitedStadium(partial, g.getStadium())) {
+				System.out.println("Trying to visit " + g.getStadium() + " twice!");
+				return;
+			}
+			partial.add(g);
 		}
 
 		if (verifyInitialData(partial)) {
+			
+			System.out.println(partial);
 
 			// initialize the missedStadiums collection
 			if (partial.isEmpty()) {
 				recalculateFailureCriteria(0);
 			} else {
-				recalculateFailureCriteria(games.indexOf(partial.get(partial.size() - 1)));
+				recalculateFailureCriteria(games.indexOf(partial.get(0)));
 			}
 
 			readPruningData();
@@ -83,6 +94,9 @@ public class BacktrackingRunner {
 			backtrack(partial);
 			if (!foundSolution) {
 				writePruningData();
+			} else {
+				printSolution(bestSolution);
+				System.out.println(tripLength(bestSolution));
 			}
 			System.out.println(partial);
 		}
@@ -112,20 +126,6 @@ public class BacktrackingRunner {
 			} catch (IOException ex) {
 				ex.printStackTrace();
 			}
-		}
-	}
-
-	private static void initializeConstraints(int input) {
-		maxNumDays = input;
-		maxDaysPerGame = new int[maxNumDays + 1];
-		maxDaysPerGame[0] = 0;
-		maxDaysPerGame[maxNumDays] = 29;
-		for (int i = 1; i < (maxNumDays - 27); i++) {
-			maxDaysPerGame[(2 * i) - 1] = i;
-			maxDaysPerGame[2 * i] = i;
-		}
-		for (int i = (2 * maxNumDays - 55); i < maxNumDays; i++) {
-			maxDaysPerGame[i] = maxDaysPerGame[i - 1] + 1;
 		}
 	}
 
@@ -164,6 +164,7 @@ public class BacktrackingRunner {
 	// noExtensions also depends on the starting date of all partial solutions
 	// being the same. It must be cleared when the starting date changes.
 	private static void recalculateFailureCriteria(int index) {
+		int index2 = index;
 		noExtensions.clear();
 		Game[] lastGameHere = new Game[30];
 		Game g = games.get(index++);
@@ -182,6 +183,32 @@ public class BacktrackingRunner {
 			}
 			missedStadiums.put((short) (firstDay + i), mapEntry);
 		}
+		
+		Game g1 = games.get(index2++);
+		while (g1.dayOfYear() < lastDay && index2 < games.size()) {
+			int j = index2;
+			Game g2 = games.get(j++);
+			while (g2.dayOfYear() == g1.dayOfYear() && j < games.size()) {
+				if (g1.canReach(g2)) {
+					EnumSet<Stadium> possibleDH = EnumSet.of(g1.getStadium(), g2.getStadium());
+					boolean shouldAdd = true;
+					for (EnumSet<Stadium> set : possibleDHs) {
+						shouldAdd = shouldAdd && !set.containsAll(possibleDH);
+					}
+					if (shouldAdd) {
+						possibleDHs.add(possibleDH);
+					}
+				}
+				g2 = games.get(j++);
+			}
+			g1 = games.get(index2++);
+		}
+		
+		System.out.println("There are " + getPossibleRemainingDHs(new ArrayList<Game>()) + " possible DHs on this trip:");
+		for (EnumSet<Stadium> possibleDH : possibleDHs) {
+			System.out.println(possibleDH.toString());
+		}
+		
 	}
 
 	// standard backtracking algorithm - just added the printPartial logic after
@@ -205,13 +232,21 @@ public class BacktrackingRunner {
 	}
 
 	private static boolean badSolution(List<Game> partial) {
-		if (travelDays(partial) > maxNumDays || partial.size() < maxDaysPerGame[travelDays(partial)]
-				|| foundSolution && tripLength(partial) > tripLength(bestSolution)) {
+		if (travelDays(partial) > maxNumDays
+				|| (foundSolution && tripLength(partial) > bestTripLength)) {
 			return true;
 		}
 
 		if (validSolution(partial) || partial.isEmpty()) {
 			return false;
+		}
+		
+		int numRestDays = getRestDays(partial);
+		int numDHs = getDHs(partial);
+		int possibleRemainingDHs = getPossibleRemainingDHs(partial);
+		
+		if ((numDHs + possibleRemainingDHs - numRestDays) < 30 - maxNumDays) {
+			return true;
 		}
 
 		// If the trip has gone to the West Coast, it must hit all West Coast
@@ -242,6 +277,96 @@ public class BacktrackingRunner {
 		return noExtensions.containsKey(key) && noExtensions.get(key).contains(calculateValue(partial));
 	}
 
+	private static int getPossibleRemainingDHs(List<Game> partial) {
+		Set<EnumSet<Stadium>> options = new HashSet<>(possibleDHs.size());
+		Set<EnumSet<Stadium>> prunedOptions = new HashSet<>();
+		for (EnumSet<Stadium> set : possibleDHs) {
+			options.add(set.clone());
+		}
+		
+		int result = 0;
+		boolean isLastDayDH = false;
+		if (partial.size() > 1 && partial.get(partial.size() - 2).dayOfYear() == partial.get(partial.size() - 1).dayOfYear()) {
+			isLastDayDH = true;
+		}
+		if (isLastDayDH) {
+			for (int i = 0; i < partial.size(); i++) {
+				for (EnumSet<Stadium> set: options) {
+					set.remove(partial.get(i).getStadium());
+				}
+			}
+		} else {
+			for (int i = 0; i < partial.size() - 1; i++) {
+				for (EnumSet<Stadium> set: options) {
+					set.remove(partial.get(i).getStadium());
+				}
+			}
+		}
+		for (EnumSet<Stadium> set: options) {
+			if (set.size() > 1) {
+				prunedOptions.add(set);
+			}
+		}
+		
+		for (Set<EnumSet<Stadium>> candidate : getPowerSet(prunedOptions)) {
+			if (candidate.size() > result && testCandidate(candidate)) {
+				result = candidate.size();
+			}
+		}
+		return result;
+	}
+
+	private static boolean testCandidate(Set<EnumSet<Stadium>> candidate) {
+		EnumSet<Stadium> stadiums = EnumSet.noneOf(Stadium.class);
+		for (EnumSet<Stadium> set : candidate) {
+			if (EnumSet.complementOf(stadiums).containsAll(set)) {
+				stadiums.addAll(set);
+			} else {
+				return false;
+			}
+		}
+		return true;
+	}
+
+	private static <T> Set<Set<T>> getPowerSet(Set<T> originalSet) {
+	    Set<Set<T>> sets = new HashSet<Set<T>>();
+	    if (originalSet.isEmpty()) {
+	        sets.add(new HashSet<T>());
+	        return sets;
+	    }
+	    List<T> list = new ArrayList<T>(originalSet);
+	    T head = list.get(0);
+	    Set<T> rest = new HashSet<T>(list.subList(1, list.size())); 
+	    for (Set<T> set : getPowerSet(rest)) {
+	        Set<T> newSet = new HashSet<T>();
+	        newSet.add(head);
+	        newSet.addAll(set);
+	        sets.add(newSet);
+	        sets.add(set);
+	    }       
+	    return sets;
+	}
+
+	private static int getDHs(List<Game> partial) {
+		int result = 0;
+		for (int i = 0; i < partial.size() - 1; i++) {
+			if (partial.get(i).dayOfYear() == partial.get(i + 1).dayOfYear()) {
+				result++;
+			}
+		}
+		return result;
+	}
+
+	private static int getRestDays(List<Game> partial) {
+		int result = 0;
+		for (int i = 0; i < partial.size() - 1; i++) {
+			if (partial.get(i).dayOfYear() + 1 < partial.get(i + 1).dayOfYear()) {
+				result = result + (partial.get(i + 1).dayOfYear() - partial.get(i).dayOfYear()) - 1;
+			}
+		}
+		return result;
+	}
+
 	private static boolean validSolution(List<Game> partial) {
 		// all stadium-related error checking is done prior to this point - we
 		// only need to check the size of the solution.
@@ -255,15 +380,17 @@ public class BacktrackingRunner {
 			foundSolution = true;
 			bestSolution.clear();
 			bestSolution.addAll(partial);
-			System.out.println(tripLength(bestSolution));
+			int tripLength = tripLength(bestSolution);
+			bestTripLength = Math.min(tripLength, bestTripLength);
+			System.out.println(tripLength);
 			writePruningData();
 		} else {
-			int bestTripLength = tripLength(bestSolution);
 			int newTripLength = tripLength(partial);
-			if (newTripLength < bestTripLength) {
+			if (newTripLength <= bestTripLength) {
 				bestSolution.clear();
 				bestSolution.addAll(partial);
 				System.out.println("Best solution is " + newTripLength + ", prev was " + bestTripLength);
+				bestTripLength = newTripLength;
 			}
 		}
 	}
@@ -399,8 +526,7 @@ public class BacktrackingRunner {
 		} else {
 			padding = last.getMinutesTo(Stadium.BAL);
 		}
-		tripLength += padding;
-		return tripLength;
+		return tripLength + padding;
 	}
 
 	private static boolean haveVisitedStadium(List<Game> partial, Stadium stadium) {
