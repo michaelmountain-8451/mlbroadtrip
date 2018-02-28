@@ -56,7 +56,7 @@ public class BacktrackingRunner {
 				System.out.println("Trying to visit " + g.getStadium() + " twice!");
 				return;
 			}
-			partial.add(games.get(parseInt(args[i])));
+			partial.add(g);
 		}
 
 		if (verifyInitialData(partial)) {
