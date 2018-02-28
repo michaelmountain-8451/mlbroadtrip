@@ -22,6 +22,7 @@ import java.util.Timer;
 import java.util.TimerTask;
 
 import org.joda.time.DateTime;
+import org.joda.time.Minutes;
 import org.joda.time.format.DateTimeFormat;
 
 import static java.lang.Integer.*;
@@ -37,6 +38,10 @@ public class BacktrackingRunner {
 	private static List<Game> bestSolution = new ArrayList<>(30);
 	private static boolean foundSolution = false;
 
+	private static final EnumSet<Stadium> WEST_COAST_STADIUMS = EnumSet.of(Stadium.LAA, Stadium.OAK, Stadium.SEA,
+			Stadium.ARI, Stadium.LAD, Stadium.SDP, Stadium.SFG);
+	private static final int NINE_AM = 32400000;
+	private static final int TEN_PM = 79200000;
 	private static final String NO_EXTENSIONS_FILE_NAME = "noExtensions.dat";
 	private static Set<EnumSet<Stadium>> possibleDHs = new HashSet<>(8);
 	
@@ -107,7 +112,8 @@ public class BacktrackingRunner {
 			br = new BufferedReader(new FileReader("Games.csv"));
 			while ((currentLine = br.readLine()) != null) {
 				gameData = currentLine.split(",");
-				DateTime startTime = DateTimeFormat.forPattern("MM/dd/yyyy kk:mm").parseDateTime(gameData[0]);
+				// subtract half hour to account for parking and getting into stadium (this will be corrected when printing solutions)
+				DateTime startTime = DateTimeFormat.forPattern("MM/dd/yyyy kk:mm").parseDateTime(gameData[0]).minusMinutes(30);
 				Stadium stadium = Stadium.valueOf(gameData[1]);
 				games.add(new Game(stadium, startTime));
 			}
@@ -243,9 +249,22 @@ public class BacktrackingRunner {
 			return true;
 		}
 
+		// If the trip has gone to the West Coast, it must hit all West Coast
+		// stadiums before leaving.
 		Game last = partial.get(partial.size() - 1);
+		if (!WEST_COAST_STADIUMS.contains(last.getStadium())) {
+			EnumSet<Stadium> needed = EnumSet.copyOf(WEST_COAST_STADIUMS);
+			for (Game g : partial) {
+				needed.remove(g.getStadium());
+			}
+			// After removing all West Coast stadiums that have been visited,
+			// the remainder should be all or nothing.
+			if (!needed.containsAll(WEST_COAST_STADIUMS) && !needed.isEmpty()) {
+				return true;
+			}
+		}
 
-		// Check if any stadiums are missing that must be present based on
+		// Next, check if any stadiums are missing that must be present based on
 		// the time limits (i.e. teams leaving for a long road trip).
 		for (Game g : missedStadiums.get((short) last.dayOfYear())) {
 			if (!(haveVisitedStadium(partial, g.getStadium()) || last.canReach(g))) {
@@ -367,7 +386,7 @@ public class BacktrackingRunner {
 			writePruningData();
 		} else {
 			int newTripLength = tripLength(partial);
-			if (newTripLength < bestTripLength) {
+			if (newTripLength <= bestTripLength) {
 				bestSolution.clear();
 				bestSolution.addAll(partial);
 				System.out.println("Best solution is " + newTripLength + ", prev was " + bestTripLength);
@@ -410,7 +429,7 @@ public class BacktrackingRunner {
 		}
 		Game last = partial.get(partial.size() - 1);
 		Game candidate = games.get(index++);
-		while (last.dayOfYear() + 2 >= candidate.dayOfYear() && index < games.size()) {
+		while (last.dayOfYear() + 3 >= candidate.dayOfYear() && index < games.size()) {
 			if (!haveVisitedStadium(partial, candidate.getStadium()) && last.canReach(candidate)) {
 				partial.add(candidate);
 				return partial;
@@ -520,7 +539,37 @@ public class BacktrackingRunner {
 	}
 
 	private static int travelDays(List<Game> partial) {
-		return partial.get(partial.size() - 1).dayOfYear() - partial.get(0).dayOfYear() + 1;
+		int partialSize = partial.size();
+		if (partialSize == 0) {
+			return 0;
+		}
+		int offset = 1;
+		Game firstGame = partial.get(0);
+		int travelToStart = Stadium.BAL.getMinutesTo(firstGame.getStadium());
+		int firstTimeAvailable = Minutes
+				.minutesBetween(firstGame.getStartTime().withMillisOfDay(NINE_AM), firstGame.getStartTime())
+				.getMinutes();
+		while (firstTimeAvailable < travelToStart) {
+			offset++;
+			travelToStart -= 720;
+		}
+		if (partial.size() == 1) {
+			return offset;
+		}
+		if (partialSize == 30) {
+			Game lastGame = partial.get(partial.size() - 1);
+			int travelFromEnd = lastGame.getStadium().getMinutesTo(Stadium.BAL);
+			if (!lastGame.getStadium().equals(Stadium.BAL) && !lastGame.getStadium().equals(Stadium.WAS)
+					&& !lastGame.getStadium().equals(Stadium.PHI)) {
+				int lastTimeAvailable = Minutes.minutesBetween(lastGame.getStartTime().plusHours(4),
+						lastGame.getStartTime().withMillisOfDay(TEN_PM)).getMinutes();
+				while (lastTimeAvailable < travelFromEnd) {
+					offset++;
+					travelFromEnd -= 720;
+				}
+			}
+		}
+		return partial.get(partial.size() - 1).dayOfYear() - partial.get(0).dayOfYear() + offset;
 	}
 
 	private static void writePruningData() {

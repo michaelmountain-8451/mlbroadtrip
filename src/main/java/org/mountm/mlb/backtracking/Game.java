@@ -13,7 +13,10 @@ public class Game implements Comparable<Game> {
 	private Stadium stadium;
 	private DateTime startTime;
 
-	private static final int TIME_OF_GAME = 210;
+	private static final int TIME_OF_GAME = 240;
+	private static final int NINE_AM = 32400000;
+	private static final int TEN_PM = 79200000;
+	private static final int MAX_DRIVING = 720;
 
 	public Game(Stadium home, DateTime startTime) {
 		this.stadium = home;
@@ -65,12 +68,40 @@ public class Game implements Comparable<Game> {
 	 *         game; <code>false</code> otherwise
 	 */
 	public boolean canReach(Game g) {
-		return Minutes.minutesBetween(startTime.plusMinutes(TIME_OF_GAME), g.startTime).getMinutes() > stadium.getMinutesTo(g.stadium);
+		if (startTime.isAfter(g.startTime.minusHours(4))) {
+			return false;
+		}
+		int dayDiff = g.startTime.getDayOfYear() - startTime.getDayOfYear();
+		int drivingTime = stadium.getMinutesTo(g.stadium);
+		if (dayDiff == 0) {
+			return Minutes.minutesBetween(startTime.plusMinutes(TIME_OF_GAME), g.startTime).getMinutes() > drivingTime;
+		}
+		boolean useDestinationTimeZone = (dayDiff > 1);
+		int drivingAfterGame = Minutes.minutesBetween(startTime.plusMinutes(TIME_OF_GAME),
+				startTime.withMillisOfDay(TEN_PM).plusHours(stadium.getTimeZone())).getMinutes();
+		if (drivingAfterGame > 0) {
+			useDestinationTimeZone = true;
+			drivingTime -= drivingAfterGame;
+		}
+		while (dayDiff > 1 && drivingTime > 0) {
+			drivingTime -= MAX_DRIVING;
+			dayDiff--;
+		}
+		if (dayDiff == 1) {
+			if (useDestinationTimeZone) {
+				return Minutes.minutesBetween(g.startTime.withMillisOfDay(NINE_AM).plusHours(g.stadium.getTimeZone()),
+						g.startTime).getMinutes() > drivingTime;
+			}
+			return Minutes
+					.minutesBetween(g.startTime.withMillisOfDay(NINE_AM).plusHours(stadium.getTimeZone()), g.startTime)
+					.getMinutes() > drivingTime;
+		}
+		return true;
 	}
 
 	@Override
 	public String toString() {
-		return stadium + " " + startTime.toString("M/dd hh:mm aa");
+		return stadium + " " + startTime.plusMinutes(30).toString("M/dd hh:mm aa");
 	}
 
 	/**
