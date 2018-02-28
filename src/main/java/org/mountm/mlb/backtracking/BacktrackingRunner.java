@@ -510,15 +510,21 @@ public class BacktrackingRunner {
 		EnumSet<Stadium> notVisited = EnumSet.allOf(Stadium.class);
 		Integer tripLength = 0;
 		for (int i = 0; i < partial.size(); i++) {
-			notVisited.remove(partial.get(i).getStadium());
-			if (i > 0) {
+			if (i == 0) {
+				tripLength += Stadium.BAL.getMinutesTo(partial.get(0).getStadium());
+			} else {
 				tripLength += partial.get(i - 1).getMinutesTo(partial.get(i));
 			}
+			notVisited.remove(partial.get(i).getStadium());
 		}
 		int padding = 0;
 		Stadium last = partial.get(partial.size() - 1).getStadium();
-		for (Stadium s : notVisited) {
-			padding = Math.max(padding, last.getMinutesTo(s));
+		if (!notVisited.isEmpty()) {
+			for (Stadium s : notVisited) {
+				padding = Math.max(padding, last.getMinutesTo(s) + s.getMinutesTo(Stadium.BAL));
+			}
+		} else {
+			padding = last.getMinutesTo(Stadium.BAL);
 		}
 		return tripLength + padding;
 	}
