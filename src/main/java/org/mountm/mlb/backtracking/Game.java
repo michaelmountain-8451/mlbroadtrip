@@ -11,29 +11,29 @@ import org.joda.time.Minutes;
 public class Game implements Comparable<Game> {
 
 	private Stadium stadium;
-	private DateTime startTime;
+	private DateTime date;
 
 	private static final int TIME_OF_GAME = 240;
 	private static final int NINE_AM = 32400000;
 	private static final int TEN_PM = 79200000;
 	private static final int MAX_DRIVING = 720;
 
-	public Game(Stadium home, DateTime startTime) {
+	public Game(Stadium home, DateTime date) {
 		this.stadium = home;
-		this.startTime = startTime;
+		this.date = date;
 	}
 
 	public Game() {
 		this.stadium = Stadium.ARI;
-		this.startTime = DateTime.now();
+		this.date = DateTime.now();
 	}
 
 	public Stadium getStadium() {
 		return stadium;
 	}
 
-	public DateTime getStartTime() {
-		return startTime;
+	public DateTime getDate() {
+		return date;
 	}
 
 	/**
@@ -41,7 +41,11 @@ public class Game implements Comparable<Game> {
 	 */
 	public int dayOfYear() {
 		// used as a more meaningful key in the missedStadiums map
-		return startTime.getDayOfYear();
+		return date.getDayOfYear();
+	}
+	
+	public int getStartTime() {
+		return 1440 * date.getDayOfYear() + date.getMinuteOfDay();
 	}
 
 	public int stadiumIndex() {
@@ -68,17 +72,17 @@ public class Game implements Comparable<Game> {
 	 *         game; <code>false</code> otherwise
 	 */
 	public boolean canReach(Game g) {
-		if (startTime.isAfter(g.startTime.minusHours(4))) {
+		if (date.isAfter(g.date.minusHours(4))) {
 			return false;
 		}
-		int dayDiff = g.startTime.getDayOfYear() - startTime.getDayOfYear();
+		int dayDiff = g.date.getDayOfYear() - date.getDayOfYear();
 		int drivingTime = stadium.getMinutesTo(g.stadium);
 		if (dayDiff == 0) {
-			return Minutes.minutesBetween(startTime.plusMinutes(TIME_OF_GAME), g.startTime).getMinutes() > drivingTime;
+			return Minutes.minutesBetween(date.plusMinutes(TIME_OF_GAME), g.date).getMinutes() > drivingTime;
 		}
 		boolean useDestinationTimeZone = (dayDiff > 1);
-		int drivingAfterGame = Minutes.minutesBetween(startTime.plusMinutes(TIME_OF_GAME),
-				startTime.withMillisOfDay(TEN_PM).plusHours(stadium.getTimeZone())).getMinutes();
+		int drivingAfterGame = Minutes.minutesBetween(date.plusMinutes(TIME_OF_GAME),
+				date.withMillisOfDay(TEN_PM).plusHours(stadium.getTimeZone())).getMinutes();
 		if (drivingAfterGame > 0) {
 			useDestinationTimeZone = true;
 			drivingTime -= drivingAfterGame;
@@ -89,11 +93,11 @@ public class Game implements Comparable<Game> {
 		}
 		if (dayDiff == 1) {
 			if (useDestinationTimeZone) {
-				return Minutes.minutesBetween(g.startTime.withMillisOfDay(NINE_AM).plusHours(g.stadium.getTimeZone()),
-						g.startTime).getMinutes() > drivingTime;
+				return Minutes.minutesBetween(g.date.withMillisOfDay(NINE_AM).plusHours(g.stadium.getTimeZone()),
+						g.date).getMinutes() > drivingTime;
 			}
 			return Minutes
-					.minutesBetween(g.startTime.withMillisOfDay(NINE_AM).plusHours(stadium.getTimeZone()), g.startTime)
+					.minutesBetween(g.date.withMillisOfDay(NINE_AM).plusHours(stadium.getTimeZone()), g.date)
 					.getMinutes() > drivingTime;
 		}
 		return true;
@@ -101,7 +105,7 @@ public class Game implements Comparable<Game> {
 
 	@Override
 	public String toString() {
-		return stadium + " " + startTime.plusMinutes(30).toString("M/dd hh:mm aa");
+		return stadium + " " + date.plusMinutes(30).toString("M/dd hh:mm aa");
 	}
 
 	/**
@@ -112,7 +116,7 @@ public class Game implements Comparable<Game> {
 	 *         greater than 0 if this game starts after the specified game.
 	 */
 	public int compareTo(Game g) {
-		int startTimeDiff = Long.compare(startTime.getMillis(), g.startTime.getMillis());
+		int startTimeDiff = Long.compare(date.getMillis(), g.date.getMillis());
 		return startTimeDiff == 0 ? stadium.compareTo(g.stadium) : startTimeDiff;
 	}
 
@@ -121,7 +125,7 @@ public class Game implements Comparable<Game> {
 		final int prime = 31;
 		int result = 1;
 		result = prime * result + ((stadium == null) ? 0 : stadium.hashCode());
-		result = prime * result + ((startTime == null) ? 0 : startTime.hashCode());
+		result = prime * result + ((date == null) ? 0 : date.hashCode());
 		return result;
 	}
 
@@ -136,10 +140,10 @@ public class Game implements Comparable<Game> {
 		Game other = (Game) obj;
 		if (stadium != other.stadium)
 			return false;
-		if (startTime == null) {
-			if (other.startTime != null)
+		if (date == null) {
+			if (other.date != null)
 				return false;
-		} else if (!startTime.equals(other.startTime))
+		} else if (!date.equals(other.date))
 			return false;
 		return true;
 	}

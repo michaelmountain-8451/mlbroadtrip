@@ -554,7 +554,7 @@ public class BacktrackingRunner {
 		Game firstGame = partial.get(0);
 		int travelToStart = Stadium.BAL.getMinutesTo(firstGame.getStadium());
 		int firstTimeAvailable = Minutes
-				.minutesBetween(firstGame.getStartTime().withMillisOfDay(NINE_AM), firstGame.getStartTime())
+				.minutesBetween(firstGame.getDate().withMillisOfDay(NINE_AM), firstGame.getDate())
 				.getMinutes();
 		while (firstTimeAvailable < travelToStart) {
 			offset++;
@@ -568,8 +568,8 @@ public class BacktrackingRunner {
 			int travelFromEnd = lastGame.getStadium().getMinutesTo(Stadium.BAL);
 			if (!lastGame.getStadium().equals(Stadium.BAL) && !lastGame.getStadium().equals(Stadium.WAS)
 					&& !lastGame.getStadium().equals(Stadium.PHI)) {
-				int lastTimeAvailable = Minutes.minutesBetween(lastGame.getStartTime().plusHours(4),
-						lastGame.getStartTime().withMillisOfDay(TEN_PM)).getMinutes();
+				int lastTimeAvailable = Minutes.minutesBetween(lastGame.getDate().plusHours(4),
+						lastGame.getDate().withMillisOfDay(TEN_PM)).getMinutes();
 				while (lastTimeAvailable < travelFromEnd) {
 					offset++;
 					travelFromEnd -= 720;
