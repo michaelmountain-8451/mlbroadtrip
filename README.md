@@ -20,4 +20,5 @@ For the 2018 schedule, the optimal solution can be found by specifying program a
 * Dynamic driving time calculations based on day of week and time of day instead of static values that assume minimal traffic
 * Improved memory usage
 * Multithreading of the backtracking algorithm to allow several subtrees to be searched simultaneously
+* Python port
 * Make the optimization more complex - factor in things like who the visiting team is (see lots of Orioles games, or prioritize classic rivalries like Cubs-Cardinals, Giants-Dodgers, or Red Sox-Yankees), consider allowing longer duration trips if the driving time can be cut significantly, etc.
