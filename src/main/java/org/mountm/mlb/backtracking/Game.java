@@ -107,6 +107,10 @@ public class Game implements Comparable<Game> {
 	public String toString() {
 		return stadium + " " + date.plusMinutes(30).toString("M/dd hh:mm aa");
 	}
+	
+	public String lpString() {
+		return stadium + date.plusMinutes(30).toString("MMMddHH");
+	}
 
 	/**
 	 * Compares two games based on their start times and locations

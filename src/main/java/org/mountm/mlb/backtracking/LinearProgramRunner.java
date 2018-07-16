@@ -109,7 +109,7 @@ public class LinearProgramRunner {
 				// startTime must be before any game in the solution:
 				// startTime - g.getStartTime() + M*isVisited(g) <= M
 				for (Game g : gameRange) {
-					constraint = "startTime" + g + ": startTime + 500000 " + g + " <= " + (500000 + g.getStartTime());
+					constraint = "startTime" + g.lpString() + ": startTime + 500000 " + g.lpString() + " <= " + (500000 + g.getStartTime());
 					bw.write(constraint);
 					bw.newLine();
 				}
@@ -119,7 +119,7 @@ public class LinearProgramRunner {
 				// games[i][j].getStartTime() - endTime +
 				// M*isVisited(games[i][j]) <= M + gameLength
 				for (Game g : gameRange) {
-					constraint = "endTime" + g + ": 500000 " + g + " - endTime <= " + (500240 - g.getStartTime());
+					constraint = "endTime" + g.lpString() + ": 500000 " + g.lpString() + " - endTime <= " + (500240 - g.getStartTime());
 					bw.write(constraint);
 					bw.newLine();
 				}
@@ -131,7 +131,7 @@ public class LinearProgramRunner {
 					constraint = "didVisit" + s + ": ";
 					for (Game g : gameRange) {
 						if (g.getStadium() == s) {
-							constraint += g;
+							constraint += g.lpString();
 							if (constraint.length() >= 500) {
 								bw.write(constraint);
 								bw.newLine();
@@ -155,7 +155,7 @@ public class LinearProgramRunner {
 				for (Game g1 : gameRange) {
 					for (Game g2 : gameRange.subList(gameRange.indexOf(g1) + 1, gameRange.size())) {
 						if (!g1.canReach(g2)) {
-							constraint = g1 + " + " + g2 + " <= 1";
+							constraint = g1.lpString() + " + " + g2.lpString() + " <= 1";
 							bw.write(constraint);
 							bw.newLine();
 						}
@@ -175,7 +175,7 @@ public class LinearProgramRunner {
 							constraint = "isFirst" + s1 + s2 + ": ";
 							for (Game g : gameRange) {
 								if (g.getStadium() == s1) {
-									constraint += g.getStartTime() + " " + g;
+									constraint += g.getStartTime() + " " + g.lpString();
 									if (constraint.length() >= 500) {
 										bw.write(constraint);
 										bw.newLine();
@@ -193,7 +193,7 @@ public class LinearProgramRunner {
 							constraint += " + 500000 isFirst" + s1 + " - ";
 							for (Game g : gameRange) {
 								if (g.getStadium() == s2) {
-									constraint += g.getStartTime() + " " + g;
+									constraint += g.getStartTime() + " " + g.lpString();
 									if (constraint.length() >= 500) {
 										bw.write(constraint);
 										bw.newLine();
@@ -230,7 +230,7 @@ public class LinearProgramRunner {
 							constraint = "isLast" + s1 + s2 + ": 500000 isLast" + s1 + " - ";
 							for (Game g : gameRange) {
 								if (g.getStadium() == s1) {
-									constraint += g.getStartTime() + " " + g;
+									constraint += g.getStartTime() + " " + g.lpString();
 									if (constraint.length() >= 500) {
 										bw.write(constraint);
 										bw.newLine();
@@ -248,7 +248,7 @@ public class LinearProgramRunner {
 							constraint += " + ";
 							for (Game g : gameRange) {
 								if (g.getStadium() == s2) {
-									constraint += g.getStartTime() + " " + g;
+									constraint += g.getStartTime() + " " + g.lpString();
 									if (constraint.length() >= 500) {
 										bw.write(constraint);
 										bw.newLine();
@@ -382,8 +382,7 @@ public class LinearProgramRunner {
 					bw.newLine();
 				}
 				for (Game g : gameRange) {
-					declaration = g.toString();
-					bw.write(declaration);
+					bw.write(g.lpString());
 					bw.newLine();
 				}
 				bw.write("END");
