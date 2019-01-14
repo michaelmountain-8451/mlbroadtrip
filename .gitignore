@@ -3,3 +3,5 @@ target/
 bin/
 noExtensions.dat
 *.xlsx
+.project
+*.lp
