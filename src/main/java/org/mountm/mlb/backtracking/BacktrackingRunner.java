@@ -2,6 +2,7 @@ package org.mountm.mlb.backtracking;
 
 import gnu.trove.map.TShortObjectMap;
 import gnu.trove.map.hash.TShortObjectHashMap;
+import gnu.trove.procedure.TIntProcedure;
 import gnu.trove.set.TIntSet;
 import gnu.trove.set.hash.TIntHashSet;
 
@@ -274,7 +275,29 @@ public class BacktrackingRunner {
 
 		// Finally, check to see if an equivalent path was already discarded
 		short key = (short) games.indexOf(last);
-		return noExtensions.containsKey(key) && noExtensions.get(key).contains(calculateValue(partial));
+		// return noExtensions.containsKey(key) && noExtensions.get(key).contains(calculateValue(partial));
+		return didEvaluateEquivalentPath(key, partial);
+	}
+
+	// Any partial solution that ends at the same game as a previously discarded solution,
+	// and does not visit any stadiums not visited in that solution,
+	// does not need to be reconsidered.
+	private static boolean didEvaluateEquivalentPath(short key, List<Game> partial) {
+		if (noExtensions.containsKey(key)) {
+			TIntSet previouslyConsidered = noExtensions.get(key);
+			int val = calculateValue(partial);
+			// forEach returns false if the iteration terminated early
+			return !previouslyConsidered.forEach(new TIntProcedure() {
+				// execute returns true if additional operations are allowed;
+				// i.e. if the number we're testing was not a match for the new partial solution
+				public boolean execute(int test) {
+					// A & B == B iff all 1 bits in B are also 1 bits in A
+					// meaning the stadium masks in B are all also in A (extra stadiums in A are allowed)
+					return (test & val) != val;
+				}
+			});
+		}
+		return false;
 	}
 
 	private static int getPossibleRemainingDHs(List<Game> partial) {
