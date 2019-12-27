@@ -1,7 +1,10 @@
 package org.mountm.mlb.backtracking;
 
+import gnu.trove.map.TIntIntMap;
 import gnu.trove.map.TShortObjectMap;
+import gnu.trove.map.hash.TIntIntHashMap;
 import gnu.trove.map.hash.TShortObjectHashMap;
+import gnu.trove.procedure.TIntIntProcedure;
 import gnu.trove.procedure.TIntProcedure;
 import gnu.trove.set.TIntSet;
 import gnu.trove.set.hash.TIntHashSet;
@@ -32,13 +35,16 @@ public class BacktrackingRunner {
 	private static int maxNumDays = 30;
 	private static int bestTripLength = Integer.MAX_VALUE;
 	private static List<Game> games = new ArrayList<>(2430);
-	private static TShortObjectMap<TIntSet> noExtensions = new TShortObjectHashMap<>(510);
+	private static TShortObjectMap<TIntSet> noExtensions = new TShortObjectHashMap<>(390);
 	private static TShortObjectMap<Set<Game>> missedStadiums = new TShortObjectHashMap<>(30);
+	private static TShortObjectMap<TIntIntMap> shortestPath = new TShortObjectHashMap<>(390);
 	private static int maxSize = 0;
 	private static List<Game> bestSolution = new ArrayList<>(30);
 	private static boolean foundSolution = false;
 
 	private static final String NO_EXTENSIONS_FILE_NAME = "noExtensions.dat";
+	private static final String BEST_SOLUTION_FILE_NAME = "bestSolution.dat";
+	private static final String SHORTEST_PATH_FILE_NAME = "shortestPath.dat";
 	private static Set<EnumSet<Stadium>> possibleDHs = new HashSet<>(8);
 	
 
@@ -48,10 +54,10 @@ public class BacktrackingRunner {
 
 		maxNumDays = Integer.parseInt(args[0]);
 		
-		bestTripLength = Integer.parseInt(args[1]);
+		bestTripLength = Integer.MAX_VALUE;
 
 		List<Game> partial = new ArrayList<>(30);
-		for (int i = 2; i < args.length; i++) {
+		for (int i = 1; i < args.length; i++) {
 			Game g = games.get(parseInt(args[i]));
 			if (haveVisitedStadium(partial, g.getStadium())) {
 				System.out.println("Trying to visit " + g.getStadium() + " twice!");
@@ -72,10 +78,12 @@ public class BacktrackingRunner {
 			}
 
 			readPruningData();
+			readPathData();
 			if (badSolution(partial)) {
 				System.out.println("Infeasible starting point.");
 				return;
 			}
+			readBestSolution();
 
 			// decrement maxSize once per minute to increase output
 			Timer timer = new Timer(true);
@@ -98,6 +106,10 @@ public class BacktrackingRunner {
 		}
 
 	}
+
+
+	
+
 
 	private static void readGameInputFile() {
 		BufferedReader br = null;
@@ -144,6 +156,36 @@ public class BacktrackingRunner {
 			ObjectInputStream ois = new ObjectInputStream(fis);
 			noExtensions = (TShortObjectMap<TIntSet>) ois.readObject();
 			ois.close();
+		} catch (IOException e) {
+			e.printStackTrace();
+		} catch (ClassNotFoundException e) {
+			e.printStackTrace();
+		}
+	}
+	
+	@SuppressWarnings("unchecked")
+	private static void readBestSolution() {
+		try {
+			FileInputStream fis = new FileInputStream(BEST_SOLUTION_FILE_NAME);
+			ObjectInputStream ois = new ObjectInputStream(fis);
+			bestSolution = (List<Game>) ois.readObject();
+			ois.close();
+			bestTripLength = tripLength(bestSolution);
+		} catch (IOException e) {
+			e.printStackTrace();
+		} catch (ClassNotFoundException e) {
+			e.printStackTrace();
+		}
+	}
+	
+	@SuppressWarnings("unchecked")
+	private static void readPathData() {
+		try {
+			FileInputStream fis = new FileInputStream(SHORTEST_PATH_FILE_NAME);
+			ObjectInputStream ois = new ObjectInputStream(fis);
+			shortestPath = (TShortObjectMap<TIntIntMap>) ois.readObject();
+			ois.close();
+			bestTripLength = tripLength(bestSolution);
 		} catch (IOException e) {
 			e.printStackTrace();
 		} catch (ClassNotFoundException e) {
@@ -228,7 +270,7 @@ public class BacktrackingRunner {
 
 	private static boolean badSolution(List<Game> partial) {
 		if (travelDays(partial) > maxNumDays
-				|| (foundSolution && tripLength(partial) > bestTripLength)) {
+				|| (foundSolution && isExcessiveTripLength(partial))) {
 			return true;
 		}
 
@@ -257,6 +299,29 @@ public class BacktrackingRunner {
 		// Finally, check to see if an equivalent path was already discarded
 		short key = (short) games.indexOf(last);
 		return didEvaluateEquivalentPath(key, partial);
+	}
+
+	private static boolean isExcessiveTripLength(List<Game> partial) {
+		int tripLength = tripLength(partial);
+		if (tripLength > bestTripLength) {
+			return true;
+		}
+		
+		short key = (short) games.indexOf(partial.get(partial.size() - 1));
+		if (shortestPath.containsKey(key)) {
+			TIntIntMap previouslyConsidered = shortestPath.get(key);
+			int val = calculateValue(partial);
+			// forEach returns false if the iteration terminated early
+			return !previouslyConsidered.forEachEntry(new TIntIntProcedure() {
+				// execute returns true if additional operations are allowed;
+				// i.e. if the number we're testing was not a match for the new partial solution
+				public boolean execute (int k, int v) {
+					return !((k & val) == val && v < tripLength);
+				}
+			});
+		}
+		
+		return false;
 	}
 
 	private static boolean didEvaluateEquivalentPath(short key, List<Game> partial) {
@@ -376,24 +441,58 @@ public class BacktrackingRunner {
 	// keep track of the current best solution
 	private static void processSolution(List<Game> partial) {
 		printSolution(partial);
+		updatePathData(partial);
 		if (!foundSolution) {
 			foundSolution = true;
+			writePruningData();
+		}
+		int newTripLength = tripLength(partial);
+		if (newTripLength < bestTripLength) {
 			bestSolution.clear();
 			bestSolution.addAll(partial);
-			int tripLength = tripLength(bestSolution);
-			bestTripLength = Math.min(tripLength, bestTripLength);
-			System.out.println(tripLength);
-			writePruningData();
-		} else {
-			int newTripLength = tripLength(partial);
-			if (newTripLength < bestTripLength) {
-				bestSolution.clear();
-				bestSolution.addAll(partial);
-				System.out.println("Best solution is " + newTripLength + ", prev was " + bestTripLength);
-				bestTripLength = newTripLength;
-			}
+			System.out.println("Best solution is " + newTripLength + ", prev was " + bestTripLength);
+			bestTripLength = newTripLength;
+			writeBestSolution();
 		}
 	}
+
+	private static void updatePathData(List<Game> partial) {
+		boolean shouldWritePathData = false;
+		for (int i = 2; i < partial.size(); i++) {
+			List<Game> subList = partial.subList(0, i+1);
+			shouldWritePathData |= insertPathDataFromSubList(subList);
+		}
+		if (shouldWritePathData) {
+			writePathData();
+		}
+	}
+
+
+	private static boolean insertPathDataFromSubList(List<Game> subList) {
+		boolean didUpdate = false;
+		short key = (short) games.indexOf(subList.get(subList.size() - 1));
+		int mask = calculateValue(subList);
+		int tripLength = tripLength(subList);
+		
+		TIntIntMap innerMap;
+		
+		if (shortestPath.containsKey(key)) {
+			innerMap = shortestPath.get(key);
+			if (!innerMap.containsKey(mask) || innerMap.get(mask) > tripLength) {
+				innerMap.put(mask, tripLength);
+				didUpdate = true;
+			}
+		} else {
+			innerMap = new TIntIntHashMap();
+			innerMap.put(mask, tripLength);
+			shortestPath.put(key, innerMap);
+			didUpdate = true;
+		}
+		return didUpdate;
+		
+	}
+
+
 
 	// The first extension of a given partial solution. Looks for the very next
 	// game that can be added.
@@ -556,5 +655,38 @@ public class BacktrackingRunner {
 				e.printStackTrace();
 			}
 			
+	}
+	
+	private static void writeBestSolution() {
+		try {
+			File file = new File(BEST_SOLUTION_FILE_NAME);
+			if (file.exists()) {
+				file.delete();
+			}
+			FileOutputStream fos = new FileOutputStream(BEST_SOLUTION_FILE_NAME);
+			ObjectOutputStream oos = new ObjectOutputStream(fos);
+			oos.writeObject(bestSolution);
+			oos.close();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		
+	}
+	
+
+	private static void writePathData() {
+		try {
+			File file = new File(SHORTEST_PATH_FILE_NAME);
+			if (file.exists()) {
+				file.delete();
+			}
+			FileOutputStream fos = new FileOutputStream(SHORTEST_PATH_FILE_NAME);
+			ObjectOutputStream oos = new ObjectOutputStream(fos);
+			oos.writeObject(shortestPath);
+			oos.close();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		
 	}
 }

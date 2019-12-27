@@ -1,5 +1,7 @@
 package org.mountm.mlb.backtracking;
 
+import java.io.Serializable;
+
 import org.joda.time.DateTime;
 import org.joda.time.Minutes;
 
@@ -8,8 +10,12 @@ import org.joda.time.Minutes;
  * a List of games can be sorted.
  * 
  */
-public class Game implements Comparable<Game> {
+public class Game implements Comparable<Game>, Serializable {
 
+	/**
+	 * 
+	 */
+	private static final long serialVersionUID = -5433969714606317194L;
 	private Stadium stadium;
 	private DateTime startTime;
 
