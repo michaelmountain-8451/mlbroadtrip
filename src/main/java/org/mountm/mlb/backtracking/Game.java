@@ -17,26 +17,26 @@ public class Game implements Comparable<Game>, Serializable {
 	 */
 	private static final long serialVersionUID = -5433969714606317194L;
 	private Stadium stadium;
-	private DateTime startTime;
+	private DateTime date;
 
 	private static final int TIME_OF_GAME = 210;
 
 	public Game(Stadium home, DateTime startTime) {
 		this.stadium = home;
-		this.startTime = startTime;
+		this.date = startTime;
 	}
 
 	public Game() {
 		this.stadium = Stadium.ARI;
-		this.startTime = DateTime.now();
+		this.date = DateTime.now();
 	}
 
 	public Stadium getStadium() {
 		return stadium;
 	}
 
-	public DateTime getStartTime() {
-		return startTime;
+	public DateTime getDate() {
+		return date;
 	}
 
 	/**
@@ -44,7 +44,11 @@ public class Game implements Comparable<Game>, Serializable {
 	 */
 	public int dayOfYear() {
 		// used as a more meaningful key in the missedStadiums map
-		return startTime.getDayOfYear();
+		return date.getDayOfYear();
+	}
+	
+	public int getStartTime() {
+		return 1440 * date.getDayOfYear() + date.getMinuteOfDay();
 	}
 
 	public int stadiumIndex() {
@@ -71,12 +75,16 @@ public class Game implements Comparable<Game>, Serializable {
 	 *         game; <code>false</code> otherwise
 	 */
 	public boolean canReach(Game g) {
-		return Minutes.minutesBetween(startTime.plusMinutes(TIME_OF_GAME), g.startTime).getMinutes() > stadium.getMinutesTo(g.stadium);
+		return Minutes.minutesBetween(date.plusMinutes(TIME_OF_GAME), g.date).getMinutes() > stadium.getMinutesTo(g.stadium);
 	}
 
 	@Override
 	public String toString() {
-		return stadium + " " + startTime.toString("M/dd hh:mm aa");
+		return stadium + " " + date.toString("M/dd hh:mm aa");
+	}
+	
+	public String lpString() {
+		return stadium + date.toString("MMMddHH");
 	}
 
 	/**
@@ -87,7 +95,7 @@ public class Game implements Comparable<Game>, Serializable {
 	 *         greater than 0 if this game starts after the specified game.
 	 */
 	public int compareTo(Game g) {
-		int startTimeDiff = Long.compare(startTime.getMillis(), g.startTime.getMillis());
+		int startTimeDiff = Long.compare(date.getMillis(), g.date.getMillis());
 		return startTimeDiff == 0 ? stadium.compareTo(g.stadium) : startTimeDiff;
 	}
 
@@ -96,7 +104,7 @@ public class Game implements Comparable<Game>, Serializable {
 		final int prime = 31;
 		int result = 1;
 		result = prime * result + ((stadium == null) ? 0 : stadium.hashCode());
-		result = prime * result + ((startTime == null) ? 0 : startTime.hashCode());
+		result = prime * result + ((date == null) ? 0 : date.hashCode());
 		return result;
 	}
 
@@ -111,10 +119,10 @@ public class Game implements Comparable<Game>, Serializable {
 		Game other = (Game) obj;
 		if (stadium != other.stadium)
 			return false;
-		if (startTime == null) {
-			if (other.startTime != null)
+		if (date == null) {
+			if (other.date != null)
 				return false;
-		} else if (!startTime.equals(other.startTime))
+		} else if (!date.equals(other.date))
 			return false;
 		return true;
 	}
