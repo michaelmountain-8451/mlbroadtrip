@@ -48,17 +48,17 @@ public class LinearProgramRunner {
 		int counter = 1;
 		int firstGameDay = gameList.get(0).dayOfYear();
 		int lastGameDay = gameList.get(gameList.size() - 1).dayOfYear();
-		for (int startDay = firstGameDay; startDay <= lastGameDay - 30; startDay++) {
+		for (int startDay = firstGameDay; startDay <= lastGameDay - 25; startDay++) {
 			int index = 0;
-			List<Game> gameRange = new ArrayList<Game>(450);
+			List<Game> gameRange = new ArrayList<Game>(375);
 			boolean isAfterASB = allStarBreak.getEnd().getDayOfYear() <= startDay;
-			if (!isAfterASB && allStarBreak.getStart().getDayOfYear() <= startDay + 30) {
+			if (!isAfterASB && allStarBreak.getStart().getDayOfYear() <= startDay + 25) {
 				continue;
 			}
 			while (gameList.get(index).dayOfYear() < startDay) {
 				index++;
 			}
-			while (index < gameList.size() && startDay + 30 >= gameList.get(index).dayOfYear()) {
+			while (index < gameList.size() && startDay + 25 >= gameList.get(index).dayOfYear()) {
 				gameRange.add(gameList.get(index++));
 			}
 
