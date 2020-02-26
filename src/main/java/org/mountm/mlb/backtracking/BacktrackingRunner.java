@@ -12,6 +12,7 @@ import gnu.trove.set.hash.TIntHashSet;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.FileReader;
 import java.io.IOException;
@@ -24,28 +25,31 @@ import java.util.List;
 import java.util.Set;
 import java.util.Timer;
 import java.util.TimerTask;
+import java.util.stream.Collectors;
 
 import org.joda.time.DateTime;
 import org.joda.time.format.DateTimeFormat;
 
-import static java.lang.Integer.*;
+import static java.lang.Integer.parseInt;
 
 public class BacktrackingRunner {
-
-	private static int maxNumDays = 30;
-	private static int bestTripLength = Integer.MAX_VALUE;
-	private static List<Game> games = new ArrayList<>(2430);
-	private static TShortObjectMap<TIntSet> noExtensions = new TShortObjectHashMap<>(390);
-	private static TShortObjectMap<Set<Game>> missedStadiums = new TShortObjectHashMap<>(30);
-	private static TShortObjectMap<TIntIntMap> shortestPath = new TShortObjectHashMap<>(390);
-	private static int maxSize = 0;
-	private static List<Game> bestSolution = new ArrayList<>(30);
-	private static boolean foundSolution = false;
 
 	private static final String NO_EXTENSIONS_FILE_NAME = "noExtensions.dat";
 	private static final String BEST_SOLUTION_FILE_NAME = "bestSolution.dat";
 	private static final String SHORTEST_PATH_FILE_NAME = "shortestPath.dat";
-	private static Set<EnumSet<Stadium>> possibleDHs = new HashSet<>(8);
+	private static final int NUMBER_OF_TEAMS = Stadium.values().length;
+	
+	private static int maxNumDays = NUMBER_OF_TEAMS;
+	private static int bestTripLength = Integer.MAX_VALUE;
+	private static List<Game> games = new ArrayList<>(2430);
+	private static TShortObjectMap<TIntSet> noExtensions = new TShortObjectHashMap<>(390);
+	private static TShortObjectMap<Set<Game>> missedStadiums = new TShortObjectHashMap<>(NUMBER_OF_TEAMS);
+	private static TShortObjectMap<TIntIntMap> shortestPath = new TShortObjectHashMap<>(390);
+	private static int maxSize = 0;
+	private static List<Game> bestSolution = new ArrayList<>(NUMBER_OF_TEAMS);
+	private static boolean foundSolution = false;
+	private static boolean isRestAllowed = true;
+	private static Set<Set<Game>> possibleDHs = new HashSet<>(8);
 	
 
 	public static void main(String[] args) {
@@ -56,7 +60,7 @@ public class BacktrackingRunner {
 		
 		bestTripLength = Integer.MAX_VALUE;
 
-		List<Game> partial = new ArrayList<>(30);
+		List<Game> partial = new ArrayList<>(NUMBER_OF_TEAMS);
 		for (int i = 1; i < args.length; i++) {
 			Game g = games.get(parseInt(args[i]));
 			if (haveVisitedStadium(partial, g.getStadium())) {
@@ -156,9 +160,9 @@ public class BacktrackingRunner {
 			ObjectInputStream ois = new ObjectInputStream(fis);
 			noExtensions = (TShortObjectMap<TIntSet>) ois.readObject();
 			ois.close();
-		} catch (IOException e) {
-			e.printStackTrace();
-		} catch (ClassNotFoundException e) {
+		} catch (FileNotFoundException e) {
+			System.out.println("No pruning file found");
+		} catch (IOException | ClassNotFoundException e) {
 			e.printStackTrace();
 		}
 	}
@@ -171,9 +175,9 @@ public class BacktrackingRunner {
 			bestSolution = (List<Game>) ois.readObject();
 			ois.close();
 			bestTripLength = tripLength(bestSolution);
-		} catch (IOException e) {
-			e.printStackTrace();
-		} catch (ClassNotFoundException e) {
+		} catch (FileNotFoundException e) {
+			System.out.println("No best solution file found");
+		} catch (IOException | ClassNotFoundException e) {
 			e.printStackTrace();
 		}
 	}
@@ -186,9 +190,9 @@ public class BacktrackingRunner {
 			shortestPath = (TShortObjectMap<TIntIntMap>) ois.readObject();
 			ois.close();
 			bestTripLength = tripLength(bestSolution);
-		} catch (IOException e) {
-			e.printStackTrace();
-		} catch (ClassNotFoundException e) {
+		} catch (FileNotFoundException e) {
+			System.out.println("No shortest path file found");
+		} catch (IOException | ClassNotFoundException e) {
 			e.printStackTrace();
 		}
 	}
@@ -203,7 +207,7 @@ public class BacktrackingRunner {
 	private static void recalculateFailureCriteria(int index) {
 		int index2 = index;
 		noExtensions.clear();
-		Game[] lastGameHere = new Game[30];
+		Game[] lastGameHere = new Game[NUMBER_OF_TEAMS];
 		Game g = games.get(index++);
 		int lastDay = g.dayOfYear() + maxNumDays;
 		int firstDay = g.dayOfYear();
@@ -212,8 +216,8 @@ public class BacktrackingRunner {
 			g = games.get(index++);
 		}
 		for (int i = 0; i < maxNumDays; i++) {
-			Set<Game> mapEntry = new HashSet<Game>(30);
-			for (int j = 0; j < 30; j++) {
+			Set<Game> mapEntry = new HashSet<Game>(NUMBER_OF_TEAMS);
+			for (int j = 0; j < NUMBER_OF_TEAMS; j++) {
 				if (lastGameHere[j].dayOfYear() - firstDay <= i) {
 					mapEntry.add(lastGameHere[j]);
 				}
@@ -227,9 +231,11 @@ public class BacktrackingRunner {
 			Game g2 = games.get(j++);
 			while (g2.dayOfYear() == g1.dayOfYear() && j < games.size()) {
 				if (g1.canReach(g2)) {
-					EnumSet<Stadium> possibleDH = EnumSet.of(g1.getStadium(), g2.getStadium());
+					Set<Game> possibleDH = new HashSet<>(2);
+					possibleDH.add(g1);
+					possibleDH.add(g2);
 					boolean shouldAdd = true;
-					for (EnumSet<Stadium> set : possibleDHs) {
+					for (Set<Game> set : possibleDHs) {
 						shouldAdd = shouldAdd && !set.containsAll(possibleDH);
 					}
 					if (shouldAdd) {
@@ -241,8 +247,16 @@ public class BacktrackingRunner {
 			g1 = games.get(index2++);
 		}
 		
-		System.out.println("There are " + getPossibleRemainingDHs(new ArrayList<Game>()) + " possible DHs on this trip:");
-		for (EnumSet<Stadium> possibleDH : possibleDHs) {
+		int possibleRemainingDHs = getPossibleRemainingDHs(new ArrayList<Game>());
+		if (possibleRemainingDHs == NUMBER_OF_TEAMS - maxNumDays) {
+			isRestAllowed = false;
+			System.out.println("No rest allowed");
+		} else {
+			System.out.println("Rest allowed");
+		}
+		
+		System.out.println("There are " + possibleRemainingDHs + " possible DHs on this trip:");
+		for (Set<Game> possibleDH : possibleDHs) {
 			System.out.println(possibleDH.toString());
 		}
 		
@@ -282,7 +296,7 @@ public class BacktrackingRunner {
 		int numDHs = getDHs(partial);
 		int possibleRemainingDHs = getPossibleRemainingDHs(partial);
 		
-		if ((numDHs + possibleRemainingDHs - numRestDays) < 30 - maxNumDays) {
+		if ((numDHs + possibleRemainingDHs - numRestDays) < NUMBER_OF_TEAMS - maxNumDays) {
 			return true;
 		}
 
@@ -343,49 +357,43 @@ public class BacktrackingRunner {
 	}
 
 	private static int getPossibleRemainingDHs(List<Game> partial) {
-		Set<EnumSet<Stadium>> options = new HashSet<>(possibleDHs.size());
-		Set<EnumSet<Stadium>> prunedOptions = new HashSet<>();
-		for (EnumSet<Stadium> set : possibleDHs) {
-			options.add(set.clone());
+		Set<Set<Game>> options = new HashSet<>(possibleDHs.size());
+		
+		for (Set<Game> set : possibleDHs) {
+			options.add(new HashSet<>(set));
 		}
 		
-		int result = 0;
-		boolean isLastDayDH = false;
-		if (partial.size() > 1 && partial.get(partial.size() - 2).dayOfYear() == partial.get(partial.size() - 1).dayOfYear()) {
-			isLastDayDH = true;
-		}
+		boolean isLastDayDH = (partial.size() > 1 && partial.get(partial.size() - 2).dayOfYear() == partial.get(partial.size() - 1).dayOfYear());
 		if (isLastDayDH) {
-			for (int i = 0; i < partial.size(); i++) {
-				for (EnumSet<Stadium> set: options) {
-					set.remove(partial.get(i).getStadium());
+			for (Game g1: partial) {
+				for (Set<Game> set: options) {
+					set.removeIf(g2 -> g2.dayOfYear() < g1.dayOfYear() || g2.getStadium().equals(g1.getStadium()));
 				}
 			}
 		} else {
 			for (int i = 0; i < partial.size() - 1; i++) {
-				for (EnumSet<Stadium> set: options) {
-					set.remove(partial.get(i).getStadium());
+				final Game g1 = partial.get(i);
+				for (Set<Game> set: options) {
+					set.removeIf(g2 -> g2.dayOfYear() < g1.dayOfYear() || g2.getStadium().equals(g1.getStadium()));
 				}
 			}
 		}
-		for (EnumSet<Stadium> set: options) {
-			if (set.size() > 1) {
-				prunedOptions.add(set);
-			}
-		}
 		
-		for (Set<EnumSet<Stadium>> candidate : getPowerSet(prunedOptions)) {
-			if (candidate.size() > result && testCandidate(candidate)) {
-				result = candidate.size();
-			}
-		}
-		return result;
+		Set<Set<Game>> prunedOptions = options.stream().filter(s -> s.size() > 1).collect(Collectors.toSet());
+		return getPowerSet(prunedOptions).stream().filter(s -> testCandidate(s)).map(Set::size).max(Integer::compare).orElse(0);
 	}
 
-	private static boolean testCandidate(Set<EnumSet<Stadium>> candidate) {
+	private static boolean testCandidate(Set<Set<Game>> candidate) {
+		Set<Integer> dates = new HashSet<>();
 		EnumSet<Stadium> stadiums = EnumSet.noneOf(Stadium.class);
-		for (EnumSet<Stadium> set : candidate) {
-			if (EnumSet.complementOf(stadiums).containsAll(set)) {
-				stadiums.addAll(set);
+		for (Set<Game> set : candidate) {
+			Integer day = set.stream().findAny().get().dayOfYear();
+			if (!dates.add(day)) {
+				return false;
+			}
+			Set<Stadium> candidateStadiums = set.stream().map(Game::getStadium).collect(Collectors.toSet());
+			if (EnumSet.complementOf(stadiums).containsAll(candidateStadiums)) {
+				stadiums.addAll(candidateStadiums);
 			} else {
 				return false;
 			}
@@ -435,7 +443,7 @@ public class BacktrackingRunner {
 	private static boolean validSolution(List<Game> partial) {
 		// all stadium-related error checking is done prior to this point - we
 		// only need to check the size of the solution.
-		return partial.size() == 30;
+		return partial.size() == NUMBER_OF_TEAMS;
 	}
 
 	// keep track of the current best solution
@@ -492,8 +500,6 @@ public class BacktrackingRunner {
 		
 	}
 
-
-
 	// The first extension of a given partial solution. Looks for the very next
 	// game that can be added.
 	private static List<Game> firstExtension(List<Game> partial) {
@@ -528,7 +534,18 @@ public class BacktrackingRunner {
 		}
 		Game last = partial.get(partial.size() - 1);
 		Game candidate = games.get(index++);
-		while (last.dayOfYear() + 2 >= candidate.dayOfYear() && index < games.size()) {
+		
+		int lastDay;
+		if (isRestAllowed) {
+			int numRestDays = getRestDays(partial);
+			int numDHs = getDHs(partial);
+			int possibleRemainingDHs = getPossibleRemainingDHs(partial);
+			lastDay = last.dayOfYear() + numDHs + possibleRemainingDHs - numRestDays - NUMBER_OF_TEAMS + maxNumDays + 1;
+		} else {
+			lastDay = last.dayOfYear() + 1;
+		}
+		
+		while (candidate.dayOfYear() <= lastDay && index < games.size()) {
 			if (!haveVisitedStadium(partial, candidate.getStadium()) && last.canReach(candidate)) {
 				partial.add(candidate);
 				return partial;
@@ -548,9 +565,6 @@ public class BacktrackingRunner {
 	// partial solutions end with the same game and visit the same set of
 	// stadiums, they are equivalent (as long as both start on the same day!)
 	private static void addToParity(List<Game> partial) {
-		if (partial.size() < 3) {
-			return;
-		}
 		short key = (short) games.indexOf(partial.get(partial.size() - 1));
 		if (noExtensions.containsKey(key)) {
 			noExtensions.get(key).add(calculateValue(partial));
@@ -614,21 +628,13 @@ public class BacktrackingRunner {
 				tripLength += partial.get(i - 1).getMinutesTo(partial.get(i));
 			}
 		}
-		int padding = 0;
 		Stadium last = partial.get(partial.size() - 1).getStadium();
-		for (Stadium s : notVisited) {
-			padding = Math.max(padding, last.getMinutesTo(s));
-		}
+		int padding = notVisited.stream().map(s -> last.getMinutesTo(s)).max(Integer::compare).orElse(0);
 		return tripLength + padding;
 	}
 
 	private static boolean haveVisitedStadium(List<Game> partial, Stadium stadium) {
-		for (Game g : partial) {
-			if (g.getStadium() == stadium) {
-				return true;
-			}
-		}
-		return false;
+		return partial.stream().anyMatch(g -> g.getStadium().equals(stadium));
 	}
 
 	private static void printSolution(List<Game> partial) {
