@@ -106,14 +106,11 @@ public class BacktrackingRunner {
 				printSolution(bestSolution);
 				System.out.println(tripLength(bestSolution));
 			}
+			writePathData();
 			System.out.println(partial);
 		}
 
 	}
-
-
-	
-
 
 	private static void readGameInputFile() {
 		BufferedReader br = null;
@@ -234,11 +231,7 @@ public class BacktrackingRunner {
 					Set<Game> possibleDH = new HashSet<>(2);
 					possibleDH.add(g1);
 					possibleDH.add(g2);
-					boolean shouldAdd = true;
-					for (Set<Game> set : possibleDHs) {
-						shouldAdd = shouldAdd && !set.containsAll(possibleDH);
-					}
-					if (shouldAdd) {
+					if (possibleDHs.stream().allMatch(dh -> !dh.containsAll(possibleDH))) {
 						possibleDHs.add(possibleDH);
 					}
 				}
@@ -248,12 +241,7 @@ public class BacktrackingRunner {
 		}
 		
 		int possibleRemainingDHs = getPossibleRemainingDHs(new ArrayList<Game>());
-		if (possibleRemainingDHs == NUMBER_OF_TEAMS - maxNumDays) {
-			isRestAllowed = false;
-			System.out.println("No rest allowed");
-		} else {
-			System.out.println("Rest allowed");
-		}
+		isRestAllowed = (possibleRemainingDHs != NUMBER_OF_TEAMS - maxNumDays);
 		
 		System.out.println("There are " + possibleRemainingDHs + " possible DHs on this trip:");
 		for (Set<Game> possibleDH : possibleDHs) {
@@ -304,10 +292,9 @@ public class BacktrackingRunner {
 
 		// Check if any stadiums are missing that must be present based on
 		// the time limits (i.e. teams leaving for a long road trip).
-		for (Game g : missedStadiums.get((short) last.dayOfYear())) {
-			if (!(haveVisitedStadium(partial, g.getStadium()) || last.canReach(g))) {
-				return true;
-			}
+		Set<Game> lastGamePerStadium = missedStadiums.get((short) last.dayOfYear());
+		if (lastGamePerStadium.stream().anyMatch(g -> !haveVisitedStadium(partial, g.getStadium()) && !last.canReach(g))) {
+			return true;
 		}
 
 		// Finally, check to see if an equivalent path was already discarded
@@ -330,7 +317,7 @@ public class BacktrackingRunner {
 				// execute returns true if additional operations are allowed;
 				// i.e. if the number we're testing was not a match for the new partial solution
 				public boolean execute (int k, int v) {
-					return !((k & val) == val && v < tripLength);
+					return ((k & val) != val || v >= tripLength);
 				}
 			});
 		}
@@ -367,14 +354,14 @@ public class BacktrackingRunner {
 		if (isLastDayDH) {
 			for (Game g1: partial) {
 				for (Set<Game> set: options) {
-					set.removeIf(g2 -> g2.dayOfYear() < g1.dayOfYear() || g2.getStadium().equals(g1.getStadium()));
+					set.removeIf(g2 -> !g1.canReach(g2) || g2.getStadium().equals(g1.getStadium()));
 				}
 			}
 		} else {
 			for (int i = 0; i < partial.size() - 1; i++) {
 				final Game g1 = partial.get(i);
 				for (Set<Game> set: options) {
-					set.removeIf(g2 -> g2.dayOfYear() < g1.dayOfYear() || g2.getStadium().equals(g1.getStadium()));
+					set.removeIf(g2 -> !g1.canReach(g2) || g2.getStadium().equals(g1.getStadium()));
 				}
 			}
 		}
@@ -465,14 +452,10 @@ public class BacktrackingRunner {
 	}
 
 	private static void updatePathData(List<Game> partial) {
-		boolean shouldWritePathData = false;
 		for (int i = 2; i < partial.size(); i++) {
-			List<Game> subList = partial.subList(0, i+1);
-			shouldWritePathData |= insertPathDataFromSubList(subList);
+			insertPathDataFromSubList(partial.subList(0, i + 1));
 		}
-		if (shouldWritePathData) {
-			writePathData();
-		}
+		writePathData();
 	}
 
 
@@ -555,6 +538,7 @@ public class BacktrackingRunner {
 		if (!foundSolution) {
 			addToParity(partial);
 		}
+		insertPathDataFromSubList(partial);
 		return null;
 	}
 
@@ -579,11 +563,7 @@ public class BacktrackingRunner {
 	// visited. The nth bit of the int represents whether the nth stadium has
 	// been visited.
 	private static int calculateValue(List<Game> partial) {
-		int val = 0;
-		for (Game g : partial) {
-			val ^= g.getStadium().getMask();
-		}
-		return val;
+		return partial.stream().map(g -> g.getStadium().getMask()).reduce(0, (a, b) -> a ^ b);
 	}
 
 	private static void printPartial(List<Game> partial) {
