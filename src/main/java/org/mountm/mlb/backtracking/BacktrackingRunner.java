@@ -100,14 +100,15 @@ public class BacktrackingRunner {
 			}, 60000, 60000);
 
 			backtrack(partial);
+			writePathData();
 			if (!foundSolution) {
 				writePruningData();
-			} else {
+			}
+			System.out.println(partial);
+			if (!bestSolution.isEmpty()) {
 				printSolution(bestSolution);
 				System.out.println(tripLength(bestSolution));
 			}
-			writePathData();
-			System.out.println(partial);
 		}
 
 	}
@@ -186,7 +187,6 @@ public class BacktrackingRunner {
 			ObjectInputStream ois = new ObjectInputStream(fis);
 			shortestPath = (TShortObjectMap<TIntIntMap>) ois.readObject();
 			ois.close();
-			bestTripLength = tripLength(bestSolution);
 		} catch (FileNotFoundException e) {
 			System.out.println("No shortest path file found");
 		} catch (IOException | ClassNotFoundException e) {
@@ -204,6 +204,9 @@ public class BacktrackingRunner {
 	private static void recalculateFailureCriteria(int index) {
 		int index2 = index;
 		noExtensions.clear();
+		shortestPath.clear();
+		missedStadiums.clear();
+		possibleDHs.clear();
 		Game[] lastGameHere = new Game[NUMBER_OF_TEAMS];
 		Game g = games.get(index++);
 		int lastDay = g.dayOfYear() + maxNumDays;
@@ -499,7 +502,9 @@ public class BacktrackingRunner {
 		int index = games.indexOf(partial.remove(partial.size() - 1)) + 1;
 		if (partial.isEmpty()) {
 			maxSize = 0;
+			foundSolution = false;
 			if (games.get(index - 1).dayOfYear() != games.get(index).dayOfYear()) {
+				System.out.println("Checking " + games.get(index).getDate().toString("M/dd"));
 				recalculateFailureCriteria(index);
 			}
 		}
@@ -624,6 +629,9 @@ public class BacktrackingRunner {
 	}
 
 	private static int travelDays(List<Game> partial) {
+		if (partial.isEmpty()) {
+			return 0;
+		}
 		return partial.get(partial.size() - 1).dayOfYear() - partial.get(0).dayOfYear() + 1;
 	}
 
