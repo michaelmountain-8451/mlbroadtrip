@@ -592,7 +592,6 @@ public class BacktrackingRunner {
 		sb.append(partial.size()).append(" in ").append(travelDays(partial));
 
 		System.out.println(sb);
-
 	}
 
 	// The total trip length is padded with distance from Baltimore to the
@@ -636,19 +635,18 @@ public class BacktrackingRunner {
 	}
 
 	private static void writePruningData() {
-			try {
-				File file = new File(NO_EXTENSIONS_FILE_NAME);
-				if (file.exists()) {
-					file.delete();
-				}
-				FileOutputStream fos = new FileOutputStream(NO_EXTENSIONS_FILE_NAME);
-				ObjectOutputStream oos = new ObjectOutputStream(fos);
-				oos.writeObject(noExtensions);
-				oos.close();
-			} catch (IOException e) {
-				e.printStackTrace();
+		try {
+			File file = new File(NO_EXTENSIONS_FILE_NAME);
+			if (file.exists()) {
+				file.delete();
 			}
-			
+			FileOutputStream fos = new FileOutputStream(NO_EXTENSIONS_FILE_NAME);
+			ObjectOutputStream oos = new ObjectOutputStream(fos);
+			oos.writeObject(noExtensions);
+			oos.close();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}	
 	}
 	
 	private static void writeBestSolution() {
@@ -664,7 +662,6 @@ public class BacktrackingRunner {
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
-		
 	}
 	
 
@@ -680,7 +677,6 @@ public class BacktrackingRunner {
 			oos.close();
 		} catch (IOException e) {
 			e.printStackTrace();
-		}
-		
+		}	
 	}
 }
