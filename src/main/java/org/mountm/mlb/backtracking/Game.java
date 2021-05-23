@@ -72,7 +72,7 @@ public class Game implements Comparable<Game> {
 	 *         game; <code>false</code> otherwise
 	 */
 	public boolean canReach(Game g) {
-		if (date.isAfter(g.date.minusHours(4))) {
+		if (date.isAfter(g.date.minusMinutes(TIME_OF_GAME))) {
 			return false;
 		}
 		int dayDiff = g.date.getDayOfYear() - date.getDayOfYear();
@@ -80,11 +80,9 @@ public class Game implements Comparable<Game> {
 		if (dayDiff == 0) {
 			return Minutes.minutesBetween(date.plusMinutes(TIME_OF_GAME), g.date).getMinutes() > drivingTime;
 		}
-		boolean useDestinationTimeZone = (dayDiff > 1);
 		int drivingAfterGame = Minutes.minutesBetween(date.plusMinutes(TIME_OF_GAME),
 				date.withMillisOfDay(TEN_PM).plusHours(stadium.getTimeZone())).getMinutes();
 		if (drivingAfterGame > 0) {
-			useDestinationTimeZone = true;
 			drivingTime -= drivingAfterGame;
 		}
 		while (dayDiff > 1 && drivingTime > 0) {
@@ -92,13 +90,8 @@ public class Game implements Comparable<Game> {
 			dayDiff--;
 		}
 		if (dayDiff == 1) {
-			if (useDestinationTimeZone) {
-				return Minutes.minutesBetween(g.date.withMillisOfDay(NINE_AM).plusHours(g.stadium.getTimeZone()),
-						g.date).getMinutes() > drivingTime;
-			}
-			return Minutes
-					.minutesBetween(g.date.withMillisOfDay(NINE_AM).plusHours(stadium.getTimeZone()), g.date)
-					.getMinutes() > drivingTime;
+			return Minutes.minutesBetween(g.date.withMillisOfDay(NINE_AM).plusHours(g.stadium.getTimeZone()),
+					g.date).getMinutes() > drivingTime;
 		}
 		return true;
 	}
