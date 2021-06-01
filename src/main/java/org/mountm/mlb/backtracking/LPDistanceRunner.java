@@ -142,7 +142,7 @@ public class LPDistanceRunner {
 				
 				// sum of arcs departing game must be less than or equal to one
 				constraint = "";
-				for (String arc : arcsLeavingGame.get(g)) {
+				for (String arc : arcsLeavingGame.getOrDefault(g, new ArrayList<>())) {
 					constraint += arc;
 					if (constraint.length() >= 500) {
 						bw.write(constraint);
@@ -151,9 +151,12 @@ public class LPDistanceRunner {
 					}
 					constraint += " + ";
 				}
-				constraint = constraint.substring(0, constraint.length() - 3) + " <= 1";
-				bw.write(constraint);
-				bw.newLine();
+				if (!constraint.isEmpty()) {
+					constraint = constraint.substring(0, constraint.length() - 3) + " <= 1";
+					bw.write(constraint);
+					bw.newLine();
+				}
+				
 				
 				// sum of arriving arcs must equal sum of departing arcs
 				constraint = "";
@@ -167,7 +170,7 @@ public class LPDistanceRunner {
 					constraint += " + ";
 				}
 				constraint = constraint.substring(0, constraint.length() - 3) + " - ";
-				for (String arc : arcsLeavingGame.get(g)) {
+				for (String arc : arcsLeavingGame.getOrDefault(g, new ArrayList<>())) {
 					constraint += arc;
 					if (constraint.length() >= 500) {
 						bw.write(constraint);
