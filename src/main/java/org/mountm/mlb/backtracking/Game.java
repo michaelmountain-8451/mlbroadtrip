@@ -75,7 +75,7 @@ public class Game implements Comparable<Game>, Serializable {
 	 *         game; <code>false</code> otherwise
 	 */
 	public boolean canReach(Game g) {
-		return Minutes.minutesBetween(date.plusMinutes(TIME_OF_GAME), g.date).getMinutes() > stadium.getMinutesTo(g.stadium);
+		return g.date.getDayOfYear() > date.getDayOfYear() || Minutes.minutesBetween(date.plusMinutes(TIME_OF_GAME), g.date).getMinutes() > stadium.getMinutesTo(g.stadium);
 	}
 
 	@Override
