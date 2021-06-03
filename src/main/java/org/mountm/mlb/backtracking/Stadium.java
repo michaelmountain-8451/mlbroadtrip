@@ -54,6 +54,41 @@ public enum Stadium {
 		{2346,2662,2484,2110,2251,1808,2090,2029,1433,1722,1257,  89, 449,1159,1152,1846,2264,2495,2406,2342,1827,1912,1826,2141,1601, 322, 950, 128,   0, 469},
 		{2471,2717,2559,2518,2306,1864,2145,2084,1584,1736,1665, 376,  21, 749,1524,2180,2672,2570,2527,2481,1882,2076,1882,2252,1795, 670,1102, 343, 461,   0}
 	};
+	
+	private static final boolean[][] canFly = {
+		//   0,    1,    2,    3,    4,    5,    6,    7,    8,    9,   10,   11,   12,   13,   14,   15,   16,   17,   18,   19,   20,   21,   22,   23,   24,   25,   26,   27,   28,   29
+		{false, true, true,false, true,false, true,false,false,false,false,false,false,false,false,false,false, true,false,false,false, true,false, true,false,false,false,false,false,false}, //0
+		{ true,false, true,false,false,false,false,false,false,false,false,false,false,false,false,false,false, true, true, true,false,false,false,false,false,false,false,false,false,false}, //1
+		{ true, true,false,false, true,false, true,false,false,false,false,false,false,false,false,false,false,false,false, true,false,false,false, true,false,false,false,false,false,false}, //2
+		{false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false, true,false,false,false,false,false,false,false,false,false,false,false,false,false}, //3
+		{ true,false, true,false,false,false, true, true,false,false,false,false,false,false,false,false,false, true, true, true,false,false,false,false,false,false,false,false,false,false}, //4
+		{false,false,false,false,false,false, true, true, true, true,false,false,false,false,false,false,false,false,false,false,false, true,false,false, true,false,false,false,false,false}, //5
+		{ true,false, true,false, true, true,false, true,false,false,false,false,false,false,false,false,false, true, true, true, true, true, true,false,false,false,false,false,false,false}, //6
+		{false,false,false,false, true, true, true,false,false,false,false,false,false,false,false,false,false,false,false,false, true, true, true, true,false,false,false,false,false,false}, //7
+		{false,false,false,false,false, true,false,false,false,false,false,false,false,false,false,false,false,false,false,false, true,false, true,false, true,false,false,false,false,false}, //8
+		{false,false,false,false,false, true,false,false,false,false,false,false,false,false,false,false,false,false,false,false, true,false, true,false,false,false,false,false,false,false}, //9
+		{false,false,false,false,false,false,false,false,false,false,false,false,false,false, true,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false}, //10
+		{false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false, true,false,false,false,false}, //11
+		{false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false}, //12
+		{false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false}, //13
+		{false,false,false,false,false,false,false,false,false,false, true,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false}, //14
+		{false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false}, //15
+		{false,false,false, true,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false}, //16
+		{ true, true,false,false, true,false, true,false,false,false,false,false,false,false,false,false,false,false,false, true,false,false,false, true,false,false,false,false,false,false}, //17
+		{false, true,false,false, true,false, true,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false, true,false,false,false,false,false,false}, //18
+		{false, true, true,false, true,false, true,false,false,false,false,false,false,false,false,false,false, true,false,false,false, true,false, true,false,false,false,false,false,false}, //19
+		{false,false,false,false,false,false, true, true, true, true,false,false,false,false,false,false,false,false,false,false,false, true,false,false, true,false,false,false,false,false}, //20
+		{ true,false,false,false,false, true, true, true,false,false,false,false,false,false,false,false,false,false,false, true, true,false,false, true,false,false,false,false,false,false}, //21
+		{false,false,false,false,false,false, true, true, true, true,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false}, //22
+		{ true,false, true,false,false,false,false, true,false,false,false,false,false,false,false,false,false, true, true, true,false, true,false,false,false,false,false,false,false,false}, //23
+		{false,false,false,false,false, true,false,false, true,false,false,false,false,false,false,false,false,false,false,false, true,false,false,false,false,false,false,false,false,false}, //24
+		{false,false,false,false,false,false,false,false,false,false,false, true,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false, true, true,false}, //25
+		{false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false}, //26
+		{false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false, true,false,false,false,false}, //27
+		{false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false, true,false,false,false,false}, //28
+		{false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false}  //29
+			
+	};
 
 	Stadium(int index, int timeZone) {
 		this.index = index;
@@ -80,6 +115,10 @@ public enum Stadium {
 	 */
 	public int getMask() {
 		return 1 << index;
+	}
+
+	public boolean canFlyTo(Stadium s) {
+		return canFly[index][s.index];
 	}
 
 }

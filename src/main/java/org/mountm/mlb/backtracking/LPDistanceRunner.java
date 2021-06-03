@@ -39,7 +39,7 @@ public class LPDistanceRunner {
 			while ((currentLine = input.readLine()) != null) {
 				int delimiter = currentLine.indexOf(",");
 				DateTimeFormatter format = DateTimeFormat.forPattern("MM/dd/yyyy kk:mm");
-				DateTime test = format.parseDateTime(currentLine.substring(0, delimiter)).minusMinutes(30);
+				DateTime test = format.parseDateTime(currentLine.substring(0, delimiter));
 				Stadium stadium = Stadium.valueOf(currentLine.substring(delimiter + 1));
 				gameList.add(new Game(stadium, test));
 			}

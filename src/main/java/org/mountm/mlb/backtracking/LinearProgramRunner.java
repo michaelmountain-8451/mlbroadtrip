@@ -17,6 +17,8 @@ import org.joda.time.format.DateTimeFormatter;
 
 public class LinearProgramRunner {
 	private static List<Game> gameList = new ArrayList<Game>(2430);
+	
+	private static final int DAYS_ALLOWED = 23;
 
 	public static void main(String[] args) {
 		BufferedReader input = null;
@@ -48,17 +50,17 @@ public class LinearProgramRunner {
 		int counter = 1;
 		int firstGameDay = gameList.get(0).dayOfYear();
 		int lastGameDay = gameList.get(gameList.size() - 1).dayOfYear();
-		for (int startDay = firstGameDay; startDay <= lastGameDay - 25; startDay++) {
+		for (int startDay = firstGameDay; startDay <= lastGameDay - (DAYS_ALLOWED - 1); startDay++) {
 			int index = 0;
 			List<Game> gameRange = new ArrayList<Game>(375);
 			boolean isAfterASB = allStarBreak.getEnd().getDayOfYear() <= startDay;
-			if (!isAfterASB && allStarBreak.getStart().getDayOfYear() <= startDay + 25) {
+			if (!isAfterASB && allStarBreak.getStart().getDayOfYear() < startDay + DAYS_ALLOWED) {
 				continue;
 			}
 			while (gameList.get(index).dayOfYear() < startDay) {
 				index++;
 			}
-			while (index < gameList.size() && startDay + 25 >= gameList.get(index).dayOfYear()) {
+			while (index < gameList.size() && startDay + DAYS_ALLOWED > gameList.get(index).dayOfYear()) {
 				gameRange.add(gameList.get(index++));
 			}
 

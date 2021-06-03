@@ -20,6 +20,7 @@ public class Game implements Comparable<Game>, Serializable {
 	private DateTime date;
 
 	private static final int TIME_OF_GAME = 210;
+	private static final int FLY_DH_LIMIT = 180;
 
 	public Game(Stadium home, DateTime startTime) {
 		this.stadium = home;
@@ -75,7 +76,18 @@ public class Game implements Comparable<Game>, Serializable {
 	 *         game; <code>false</code> otherwise
 	 */
 	public boolean canReach(Game g) {
-		return g.date.getDayOfYear() > date.getDayOfYear() || Minutes.minutesBetween(date.plusMinutes(TIME_OF_GAME), g.date).getMinutes() > stadium.getMinutesTo(g.stadium);
+		if (g.date.getDayOfYear() > date.getDayOfYear()) {
+			return true;
+		}
+		int timeAllowed = Minutes.minutesBetween(date.plusMinutes(TIME_OF_GAME), g.date).getMinutes();
+		if (timeAllowed < 0) {
+			return false;
+		}
+		if (timeAllowed >= stadium.getMinutesTo(g.stadium)) {
+			return true;
+		}
+		// if flying a doubleheader, you must have at least 6 hours between games
+		return stadium.canFlyTo(g.stadium) && timeAllowed >= FLY_DH_LIMIT;
 	}
 
 	@Override
