@@ -18,7 +18,9 @@ import org.joda.time.format.DateTimeFormatter;
 public class LinearProgramRunner {
 	private static List<Game> gameList = new ArrayList<Game>(2430);
 	
-	private static final int DAYS_ALLOWED = 23;
+	private static final int DAYS_ALLOWED = 26;
+
+	private static final boolean CAN_FLY = false;
 
 	public static void main(String[] args) {
 		BufferedReader input = null;
@@ -136,7 +138,7 @@ public class LinearProgramRunner {
 				// isVisited(g1) + isVisited(g2) <= 1
 				for (Game g1 : gameRange) {
 					for (Game g2 : gameRange.subList(gameRange.indexOf(g1) + 1, gameRange.size())) {
-						if (!g1.canReach(g2)) {
+						if (!g1.canReach(g2, CAN_FLY)) {
 							constraint = g1.lpString() + " + " + g2.lpString() + " <= 1";
 							bw.write(constraint);
 							bw.newLine();

@@ -20,6 +20,7 @@ import org.joda.time.format.DateTimeFormatter;
 
 public class LPDistanceRunner {
 	
+	private static final boolean CAN_FLY = false;
 	private static List<Game> gameList = new ArrayList<Game>(2430);
 	private static Map<Game, Set<Game>> gamesLeavingGame = new HashMap<>();
 	private static Set<Game> lastGamePerStadium = new HashSet<>();
@@ -241,7 +242,7 @@ public class LPDistanceRunner {
 			lastGameHere[g1.getStadium().getIndex()] = g1;
 			for (int j = i+1; j < gameList.size(); j++) {
 				Game g2 = gameList.get(j);
-				if (!g1.getStadium().equals(g2.getStadium()) && g1.canReach(g2)) {
+				if (!g1.getStadium().equals(g2.getStadium()) && g1.canReach(g2, CAN_FLY)) {
 					String arc = g1.lpString() + "to" + g2.lpString();
 					regularArcs.add(arc);
 					

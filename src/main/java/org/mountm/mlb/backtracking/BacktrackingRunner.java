@@ -38,6 +38,7 @@ public class BacktrackingRunner {
 	private static final String BEST_SOLUTION_FILE_NAME = "bestSolution.dat";
 	private static final String SHORTEST_PATH_FILE_NAME = "shortestPath.dat";
 	private static final int NUMBER_OF_TEAMS = Stadium.values().length;
+	private static final boolean CAN_FLY = true;
 	
 	private static int maxNumDays = NUMBER_OF_TEAMS;
 	private static int bestTripLength = Integer.MAX_VALUE;
@@ -143,7 +144,7 @@ public class BacktrackingRunner {
 			return true;
 		}
 		for (int i = 0; i < partial.size() - 1; i++) {
-			if (!partial.get(i).canReach(partial.get(i + 1))) {
+			if (!partial.get(i).canReach(partial.get(i + 1), CAN_FLY)) {
 				System.out.println("Can't get from " + partial.get(i) + " to " + partial.get(i + 1));
 				return false;
 			}
@@ -230,7 +231,7 @@ public class BacktrackingRunner {
 			int j = index2;
 			Game g2 = games.get(j++);
 			while (g2.dayOfYear() == g1.dayOfYear() && j < games.size()) {
-				if (g1.canReach(g2)) {
+				if (g1.canReach(g2, CAN_FLY)) {
 					Set<Game> possibleDH = new HashSet<>(2);
 					possibleDH.add(g1);
 					possibleDH.add(g2);
@@ -296,7 +297,7 @@ public class BacktrackingRunner {
 		// Check if any stadiums are missing that must be present based on
 		// the time limits (i.e. teams leaving for a long road trip).
 		Set<Game> lastGamePerStadium = missedStadiums.get((short) last.dayOfYear());
-		if (lastGamePerStadium.stream().anyMatch(g -> !haveVisitedStadium(partial, g.getStadium()) && !last.canReach(g))) {
+		if (lastGamePerStadium.stream().anyMatch(g -> !haveVisitedStadium(partial, g.getStadium()) && !last.canReach(g, CAN_FLY))) {
 			return true;
 		}
 
@@ -357,14 +358,14 @@ public class BacktrackingRunner {
 		if (isLastDayDH) {
 			for (Game g1: partial) {
 				for (Set<Game> set: options) {
-					set.removeIf(g2 -> !g1.canReach(g2) || g2.getStadium().equals(g1.getStadium()));
+					set.removeIf(g2 -> !g1.canReach(g2, CAN_FLY) || g2.getStadium().equals(g1.getStadium()));
 				}
 			}
 		} else {
 			for (int i = 0; i < partial.size() - 1; i++) {
 				final Game g1 = partial.get(i);
 				for (Set<Game> set: options) {
-					set.removeIf(g2 -> !g1.canReach(g2) || g2.getStadium().equals(g1.getStadium()));
+					set.removeIf(g2 -> !g1.canReach(g2, CAN_FLY) || g2.getStadium().equals(g1.getStadium()));
 				}
 			}
 		}
@@ -534,7 +535,7 @@ public class BacktrackingRunner {
 		}
 		
 		while (candidate.dayOfYear() <= lastDay && index < games.size()) {
-			if (!haveVisitedStadium(partial, candidate.getStadium()) && last.canReach(candidate)) {
+			if (!haveVisitedStadium(partial, candidate.getStadium()) && last.canReach(candidate, CAN_FLY)) {
 				partial.add(candidate);
 				return partial;
 			}

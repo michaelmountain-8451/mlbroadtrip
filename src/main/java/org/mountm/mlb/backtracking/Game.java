@@ -75,7 +75,7 @@ public class Game implements Comparable<Game>, Serializable {
 	 * @return <code>true</code> if the specified game can be reached from this
 	 *         game; <code>false</code> otherwise
 	 */
-	public boolean canReach(Game g) {
+	public boolean canReach(Game g, boolean canFly) {
 		if (g.date.getDayOfYear() > date.getDayOfYear()) {
 			return true;
 		}
@@ -87,7 +87,7 @@ public class Game implements Comparable<Game>, Serializable {
 			return true;
 		}
 		// if flying a doubleheader, you must have at least 6 hours between games
-		return stadium.canFlyTo(g.stadium) && timeAllowed >= FLY_DH_LIMIT;
+		return canFly && stadium.canFlyTo(g.stadium) && timeAllowed >= FLY_DH_LIMIT;
 	}
 
 	@Override
