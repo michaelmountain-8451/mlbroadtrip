@@ -27,7 +27,7 @@ public class LinearProgramRunner {
 			input = new BufferedReader(new FileReader("Games.csv"));
 			while ((currentLine = input.readLine()) != null) {
 				int delimiter = currentLine.indexOf(",");
-				DateTimeFormatter format = DateTimeFormat.forPattern("MM/dd/yyyy kk:mm");
+				DateTimeFormatter format = DateTimeFormat.forPattern("M/d/yyyy kk:mm");
 				DateTime test = format.parseDateTime(currentLine.substring(0, delimiter));
 				Stadium stadium = Stadium.valueOf(currentLine.substring(delimiter + 1));
 				gameList.add(new Game(stadium, test));
