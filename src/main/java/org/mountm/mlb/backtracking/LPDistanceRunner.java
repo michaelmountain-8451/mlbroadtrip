@@ -38,8 +38,8 @@ public class LPDistanceRunner {
 			input = new BufferedReader(new FileReader("GamesPruned.csv"));
 			while ((currentLine = input.readLine()) != null) {
 				int delimiter = currentLine.indexOf(",");
-				DateTimeFormatter format = DateTimeFormat.forPattern("MM/dd/yyyy kk:mm");
-				DateTime test = format.parseDateTime(currentLine.substring(0, delimiter)).minusMinutes(30);
+				DateTimeFormatter format = DateTimeFormat.forPattern("M/d/yyyy kk:mm");
+				DateTime test = format.parseDateTime(currentLine.substring(0, delimiter));
 				Stadium stadium = Stadium.valueOf(currentLine.substring(delimiter + 1));
 				gameList.add(new Game(stadium, test));
 			}
@@ -127,7 +127,7 @@ public class LPDistanceRunner {
 			for (Game g: gameList) {
 				// sum of arcs arriving at game must be less than or equal to one
 				constraint = "";
-				for (String arc : arcsArrivingGame.get(g)) {
+				for (String arc : arcsArrivingGame.getOrDefault(g, new ArrayList<>())) {
 					constraint += arc;
 					if (constraint.length() >= 500) {
 						bw.write(constraint);
@@ -136,9 +136,11 @@ public class LPDistanceRunner {
 					}
 					constraint += " + ";
 				}
-				constraint = constraint.substring(0, constraint.length() - 3) + " <= 1";
-				bw.write(constraint);
-				bw.newLine();
+				if (!constraint.isEmpty()) {
+					constraint = constraint.substring(0, constraint.length() - 3) + " <= 1";
+					bw.write(constraint);
+					bw.newLine();
+				}
 				
 				// sum of arcs departing game must be less than or equal to one
 				constraint = "";
@@ -160,7 +162,9 @@ public class LPDistanceRunner {
 				
 				// sum of arriving arcs must equal sum of departing arcs
 				constraint = "";
-				for (String arc : arcsArrivingGame.get(g)) {
+				boolean hasArrivingArcs = false;
+				for (String arc : arcsArrivingGame.getOrDefault(g, new ArrayList<>())) {
+					hasArrivingArcs = true;
 					constraint += arc;
 					if (constraint.length() >= 500) {
 						bw.write(constraint);
@@ -169,7 +173,10 @@ public class LPDistanceRunner {
 					}
 					constraint += " + ";
 				}
-				constraint = constraint.substring(0, constraint.length() - 3) + " - ";
+				if (hasArrivingArcs) {
+					constraint = constraint.substring(0, constraint.length() - 3) + " - ";
+				}
+				
 				for (String arc : arcsLeavingGame.getOrDefault(g, new ArrayList<>())) {
 					constraint += arc;
 					if (constraint.length() >= 500) {
@@ -177,7 +184,7 @@ public class LPDistanceRunner {
 						bw.newLine();
 						constraint = "";
 					}
-					constraint += " - ";
+					constraint += hasArrivingArcs ? " - " : " + ";
 				}
 				constraint = constraint.substring(0, constraint.length() - 3) + " = 0";
 				bw.write(constraint);
